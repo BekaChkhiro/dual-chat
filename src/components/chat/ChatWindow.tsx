@@ -136,8 +136,10 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
     }
   };
 
-  const filteredMessages = messages?.filter(
-    (msg) => !msg.is_staff_only || isStaffMode
+  // Staff Mode: show only staff-only messages
+  // Client Mode: show only non-staff messages
+  const filteredMessages = messages?.filter((msg) =>
+    isStaffMode ? msg.is_staff_only : !msg.is_staff_only
   );
 
   if (isLoading) {
