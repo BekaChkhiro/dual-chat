@@ -5,9 +5,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare, UserPlus } from "lucide-react";
 import { ModeToggle } from "./ModeToggle";
 import { MessageBubble } from "./MessageBubble";
+import { AddMemberDialog } from "./AddMemberDialog";
 import { toast } from "sonner";
 
 interface Message {
@@ -31,6 +32,7 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [isStaffMode, setIsStaffMode] = useState(false);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data: messages, isLoading } = useQuery({
@@ -159,7 +161,17 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
             <h2 className="font-semibold text-lg">{chat?.client_name}</h2>
             <p className="text-sm text-muted-foreground">{chat?.company_name}</p>
           </div>
-          <ModeToggle isStaffMode={isStaffMode} onToggle={setIsStaffMode} />
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAddMemberOpen(true)}
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add Member
+            </Button>
+            <ModeToggle isStaffMode={isStaffMode} onToggle={setIsStaffMode} />
+          </div>
         </div>
       </div>
 
@@ -220,6 +232,12 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
           </p>
         )}
       </div>
+
+      <AddMemberDialog
+        open={addMemberOpen}
+        onOpenChange={setAddMemberOpen}
+        chatId={chatId}
+      />
     </div>
   );
 };
