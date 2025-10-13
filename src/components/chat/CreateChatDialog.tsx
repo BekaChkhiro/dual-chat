@@ -36,6 +36,23 @@ export const CreateChatDialog = ({ open, onOpenChange }: CreateChatDialogProps) 
     mutationFn: async () => {
       const validated = chatSchema.parse({ clientName, companyName });
 
+      // Debug: log context before creating
+      console.debug("[CreateChat] Starting", {
+        userId: user?.id,
+        payload: { clientName: validated.clientName, companyName: validated.companyName },
+      });
+
+      // Debug: check server-side role via RPC
+      try {
+        const { data: hasTeam, error: roleErr } = await supabase.rpc("has_role", {
+          _user_id: user!.id,
+          _role: "team_member",
+        });
+        console.debug("[CreateChat] has_role(team_member)", { hasTeam, roleErr });
+      } catch (e) {
+        console.debug("[CreateChat] RPC has_role failed", e);
+      }
+
       // Create chat
       const { data: chat, error: chatError } = await supabase
         .from("chats")
@@ -47,6 +64,7 @@ export const CreateChatDialog = ({ open, onOpenChange }: CreateChatDialogProps) 
         .select()
         .single();
 
+      console.debug("[CreateChat] Insert chats response", { chat, chatError });
       if (chatError) throw chatError;
 
       // Add creator as member
@@ -57,12 +75,14 @@ export const CreateChatDialog = ({ open, onOpenChange }: CreateChatDialogProps) 
           user_id: user!.id,
         });
 
+      console.debug("[CreateChat] Insert chat_members response", { memberError });
       if (memberError) throw memberError;
 
       return chat;
     },
     onSuccess: () => {
       toast.success("Chat created successfully!");
+      console.debug("[CreateChat] Success - invalidating chats list");
       queryClient.invalidateQueries({ queryKey: ["chats"] });
       setClientName("");
       setCompanyName("");
@@ -73,7 +93,12 @@ export const CreateChatDialog = ({ open, onOpenChange }: CreateChatDialogProps) 
         toast.error(error.errors[0].message);
       } else {
         toast.error("Failed to create chat");
-        console.error(error);
+        console.error("[CreateChat] Error details", {
+          code: (error as any)?.code,
+          message: (error as any)?.message,
+          details: (error as any)?.details,
+          hint: (error as any)?.hint,
+        });
       }
     },
   });
