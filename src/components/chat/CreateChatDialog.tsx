@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   Dialog,
   DialogContent,
@@ -28,17 +29,23 @@ interface CreateChatDialogProps {
 
 export const CreateChatDialog = ({ open, onOpenChange }: CreateChatDialogProps) => {
   const { user } = useAuth();
+  const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const [clientName, setClientName] = useState("");
   const [companyName, setCompanyName] = useState("");
 
   const createChatMutation = useMutation({
     mutationFn: async () => {
+      if (!currentOrganization) {
+        throw new Error("გთხოვთ აირჩიოთ ორგანიზაცია");
+      }
+
       const validated = chatSchema.parse({ clientName, companyName });
 
       // Debug: log context before creating
       console.debug("[CreateChat] Starting", {
         userId: user?.id,
+        organizationId: currentOrganization.id,
         payload: { clientName: validated.clientName, companyName: validated.companyName },
       });
 
@@ -53,13 +60,14 @@ export const CreateChatDialog = ({ open, onOpenChange }: CreateChatDialogProps) 
         console.debug("[CreateChat] RPC has_role failed", e);
       }
 
-      // Create chat
+      // Create chat with organization_id
       const { data: chat, error: chatError } = await supabase
         .from("chats")
         .insert({
           client_name: validated.clientName,
           company_name: validated.companyName,
           created_by: user!.id,
+          organization_id: currentOrganization.id,
         })
         .select()
         .single();
@@ -83,7 +91,7 @@ export const CreateChatDialog = ({ open, onOpenChange }: CreateChatDialogProps) 
     onSuccess: () => {
       toast.success("ჩატი წარმატებით შეიქმნა!");
       console.debug("[CreateChat] Success - invalidating chats list");
-      queryClient.invalidateQueries({ queryKey: ["chats"] });
+      queryClient.invalidateQueries({ queryKey: ["chats", currentOrganization?.id] });
       setClientName("");
       setCompanyName("");
       onOpenChange(false);

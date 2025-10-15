@@ -4,7 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DualChat is a team-client communication platform with dual-mode messaging built on React, TypeScript, Vite, Supabase, and shadcn-ui. The key feature is **staff mode**: team members can toggle between client-visible messages and internal staff-only notes within the same chat thread.
+DualChat is a team-client communication platform with dual-mode messaging and multi-organization support built on React, TypeScript, Vite, Supabase, and shadcn-ui. Key features include:
+- **Staff mode**: Team members toggle between client-visible messages and internal staff-only notes
+- **Multi-organization**: Users can create and switch between multiple organizations, each with isolated chats
+- **Setup wizard**: New users complete a 3-step onboarding process (profile, organization, completion)
 
 ## Development Commands
 
@@ -42,17 +45,22 @@ The app uses a **role-based access control (RBAC)** system with three roles defi
 ### Database Schema
 
 Core tables (all with RLS enabled):
-- `profiles` - User profile information (auto-created on signup via trigger)
+- `profiles` - User profile information with phone, bio, avatar_url, and setup_completed flag
 - `user_roles` - Maps users to their roles (security critical, separate table)
-- `chats` - Chat conversations with client/company metadata
+- `organizations` - Organizations that users can create and belong to
+- `organization_members` - Maps users to organizations with roles (owner, admin, member)
+- `chats` - Chat conversations with client/company metadata and organization_id
 - `chat_members` - Many-to-many relationship between users and chats
 - `messages` - Chat messages with `is_staff_only` flag for dual-mode messaging
 - `chat_invitations` - Pending email invitations with tokens (7-day expiry)
 
 **Key RLS Policies**:
 - Messages: `is_staff_only` messages only visible to admin/team_member roles
-- Chats: Users can only see chats they're members of
+- Chats: Users can only see chats they're members of AND belong to the chat's organization
 - Chat Members: Only team members can add/remove members
+- Organizations: Users can only see organizations they're members of
+- Organization Members: Members can view other members in their organizations
+- Owners/admins can manage organization settings and members
 
 ### Dual-Mode Messaging
 
@@ -87,8 +95,10 @@ Invitations:
 ### State Management
 
 - **Auth**: `AuthContext` (React Context) provides `user`, `session`, `loading`
+- **Organizations**: `OrganizationContext` provides `currentOrganization`, `organizations`, `switchOrganization()`, `createOrganization()`, `updateOrganization()`, `deleteOrganization()`
 - **Data fetching**: TanStack Query (React Query) with Supabase
 - **Forms**: react-hook-form + zod validation
+- **Local Storage**: `currentOrganizationId` persists selected organization between sessions
 
 ### Styling
 
@@ -96,20 +106,50 @@ Invitations:
 - shadcn-ui components in `src/components/ui/`
 - Custom CSS variables in `src/index.css` for theming
 
+### User Flows
+
+**New User Registration:**
+1. Sign up on `/auth` (email, password, full name)
+2. Redirect to `/setup` (3-step wizard)
+   - Step 1: Profile details (phone, bio, avatar - all optional)
+   - Step 2: Create first organization (name required, description & logo optional)
+   - Step 3: Success screen, auto-redirect to dashboard
+3. Profile `setup_completed` set to `true`
+4. User becomes `owner` of their first organization
+
+**Existing User Login:**
+1. Login on `/auth`
+2. If `setup_completed` is `false`, redirect to `/setup`
+3. Otherwise, redirect to `/` (dashboard)
+4. OrganizationContext auto-selects last used organization (from localStorage)
+
+**Organization Switching:**
+- Header contains `OrganizationSwitcher` dropdown
+- Shows all organizations user belongs to with their role badge (owner/admin/member)
+- Click to switch → ChatList refreshes with selected organization's chats
+- Selection persisted in localStorage
+
+**Creating Chats:**
+- Chats belong to `currentOrganization`
+- All chats in ChatList filtered by `organization_id`
+- When switching organizations, chat list automatically updates
+
 ### File Structure
 
 ```
 src/
 ├── components/
-│   ├── chat/          - Chat-specific components (ChatWindow, ChatList, etc.)
+│   ├── chat/          - Chat components (ChatWindow, ChatList, CreateChatDialog, etc.)
+│   ├── organization/  - Organization components (OrganizationSwitcher, CreateOrganizationDialog)
+│   ├── setup/         - Setup wizard components (ProfileSetupForm, OrganizationSetupForm, AvatarUpload)
 │   └── ui/            - shadcn-ui components
-├── contexts/          - React contexts (AuthContext)
+├── contexts/          - React contexts (AuthContext, OrganizationContext)
 ├── hooks/             - Custom hooks
 ├── integrations/
 │   └── supabase/      - Supabase client and generated types
 ├── lib/               - Utilities
-├── pages/             - Route pages (Index, Auth, NotFound)
-└── App.tsx            - Root component with routing
+├── pages/             - Route pages (Index, Auth, Setup, NotFound)
+└── App.tsx            - Root component with routing and providers
 ```
 
 ## Supabase Integration
@@ -120,6 +160,9 @@ Environment variables required in `.env`:
 - `VITE_SUPABASE_URL` - Supabase project URL
 - `VITE_SUPABASE_PUBLISHABLE_KEY` - Anon public key
 - `VITE_SUPABASE_PROJECT_ID` - Project ID
+
+Edge function environment variables (set in Supabase dashboard):
+- `RESEND_API_KEY` - Required for `send-chat-invitation` function to send emails
 
 ### Type Generation
 
@@ -134,10 +177,37 @@ npx supabase gen types typescript --project-id <project-id> > src/integrations/s
 Located in `supabase/migrations/`. Key migrations:
 - `20251013142138_*` - Initial schema with RBAC, profiles, chats, messages
 - `20251015065952_*` - Chat invitations system
+- `20251015120000_*` - File attachments storage bucket and policies
+- `20251015170000_*` - Auto-assign admin role to first user, allow staff to add members
+- `20251015190000_*` - Organizations system: organizations, organization_members tables, profiles enhancements (phone, bio, setup_completed), avatars & organization-logos storage buckets
 
 ### Edge Functions
 
 - `send-chat-invitation` - Sends invitation emails to non-existent users
+  - Requires `RESEND_API_KEY` environment variable
+  - Uses Resend API for email delivery
+  - Sends email with invitation URL format: `${origin}/auth?invitation=${token}`
+
+### File Attachments
+
+Messages support file attachments stored in Supabase Storage:
+- Bucket: `chat-attachments` (private, 10MB limit per file)
+- Allowed types: images, PDFs, Word docs, text files, spreadsheets
+- Storage structure: `{user_id}/{chat_id}/{timestamp}-{random}.{ext}`
+- Signed URLs with 1-year expiration are generated for access
+- RLS policies: Users can only upload/view files in their own folders (first path segment = user_id)
+
+Attachment data stored in `messages.attachments` JSONB column:
+```typescript
+{
+  name: string;    // Original filename
+  type: string;    // MIME type
+  url: string;     // Signed URL
+  size: number;    // File size in bytes
+}
+```
+
+See `src/components/chat/ChatWindow.tsx:214-256` for upload implementation.
 
 ## Important Patterns
 
@@ -184,3 +254,26 @@ INSERT INTO user_roles (user_id, role) VALUES
 ```
 
 Note: A user can have multiple roles (unique constraint on `user_id, role` pair).
+
+## Organization Roles
+
+Organizations use a separate role system from global app roles:
+- `owner` - Full control, can delete organization, manage all members
+- `admin` - Can manage organization settings and members (except owners)
+- `member` - Can view organization, create/view chats
+
+Helper functions available:
+```sql
+is_organization_owner(_user_id, _organization_id) -- Returns boolean
+is_organization_admin(_user_id, _organization_id) -- Returns boolean (owner OR admin)
+get_user_organization_role(_user_id, _organization_id) -- Returns role as text
+```
+
+## Important Implementation Notes
+
+- Always check `currentOrganization` before creating chats or fetching chat lists
+- ChatList query includes `organization_id` in queryKey: `["chats", currentOrganization?.id]`
+- Setup wizard sets `setup_completed = true` in profiles table
+- Dashboard checks `setup_completed` and redirects to `/setup` if false
+- Organization logo upload uses public bucket, avatar upload uses private bucket
+- First user in setup wizard automatically becomes organization owner

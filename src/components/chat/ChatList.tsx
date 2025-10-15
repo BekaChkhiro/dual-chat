@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ interface Chat {
   client_name: string;
   company_name: string;
   created_at: string;
+  organization_id: string | null;
   last_message?: {
     content: string;
     sender_name: string;
@@ -27,13 +29,18 @@ interface ChatListProps {
 }
 
 export const ChatList = ({ selectedChatId, onSelectChat, onCreateChat }: ChatListProps) => {
+  const { currentOrganization } = useOrganization();
+
   const { data: chats, isLoading } = useQuery({
-    queryKey: ["chats"],
+    queryKey: ["chats", currentOrganization?.id],
     queryFn: async () => {
-      // Fetch all chats
+      if (!currentOrganization) return [];
+
+      // Fetch chats for the current organization
       const { data: chatsData, error: chatsError } = await supabase
         .from("chats")
         .select("*")
+        .eq("organization_id", currentOrganization.id)
         .order("updated_at", { ascending: false });
 
       if (chatsError) throw chatsError;

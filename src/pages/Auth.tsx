@@ -109,42 +109,52 @@ const Auth = () => {
           toast.error(error.message);
         }
       } else if (authData.user) {
-        // If there's an invitation, process it
-        if (invitationData) {
-          const token = searchParams.get("invitation");
-          
-          // Get invitation details
-          const { data: invitation } = await supabase
-            .from("chat_invitations")
-            .select("*")
-            .eq("token", token!)
-            .single();
+        // Check if email confirmation is required
+        if (authData.session) {
+          // Auto-confirmed (e.g., if email confirmation is disabled)
+          // If there's an invitation, process it
+          if (invitationData) {
+            const token = searchParams.get("invitation");
 
-          if (invitation) {
-            // Add user to chat
-            await supabase.from("chat_members").insert({
-              chat_id: invitation.chat_id,
-              user_id: authData.user.id,
-            });
-
-            // Assign role
-            await supabase.from("user_roles").insert({
-              user_id: authData.user.id,
-              role: invitation.role,
-            });
-
-            // Mark invitation as accepted
-            await supabase
+            // Get invitation details
+            const { data: invitation } = await supabase
               .from("chat_invitations")
-              .update({ accepted_at: new Date().toISOString() })
-              .eq("token", token!);
+              .select("*")
+              .eq("token", token!)
+              .single();
 
-            toast.success(`მოგესალმებით! თქვენ დამატებული ხართ ${invitationData.chatName}-ში`);
+            if (invitation) {
+              // Add user to chat
+              await supabase.from("chat_members").insert({
+                chat_id: invitation.chat_id,
+                user_id: authData.user.id,
+              });
+
+              // Assign role
+              await supabase.from("user_roles").insert({
+                user_id: authData.user.id,
+                role: invitation.role,
+              });
+
+              // Mark invitation as accepted
+              await supabase
+                .from("chat_invitations")
+                .update({ accepted_at: new Date().toISOString() })
+                .eq("token", token!);
+
+              toast.success(`მოგესალმებით! თქვენ დამატებული ხართ ${invitationData.chatName}-ში`);
+            }
           }
-        } else {
+
           toast.success("ანგარიში შეიქმნა! გადამისამართება...");
+          navigate("/setup");
+        } else {
+          // Email confirmation required
+          toast.success(
+            "რეგისტრაცია წარმატებულია! გთხოვთ შეამოწმოთ თქვენი ელ. ფოსტა და დაადასტუროთ ანგარიში.",
+            { duration: 5000 }
+          );
         }
-        navigate("/");
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -182,8 +192,20 @@ const Auth = () => {
           toast.error(error.message);
         }
       } else {
-        toast.success("კეთილი იყოს თქვენი დაბრუნება!");
-        navigate("/");
+        // Check if user has completed setup
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("setup_completed")
+          .eq("id", (await supabase.auth.getUser()).data.user?.id!)
+          .single();
+
+        if (profile && profile.setup_completed === false) {
+          toast.success("კეთილი იყოს თქვენი დაბრუნება! დაასრულეთ პროფილის გაკეთება.");
+          navigate("/setup");
+        } else {
+          toast.success("კეთილი იყოს თქვენი დაბრუნება!");
+          navigate("/");
+        }
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
