@@ -78,7 +78,7 @@ export const ChatList = ({ selectedChatId, onSelectChat, onCreateChat }: ChatLis
   if (isLoading) {
     return (
       <div className="w-[400px] border-r bg-sidebar-bg flex items-center justify-center">
-        <p className="text-muted-foreground">Loading chats...</p>
+        <p className="text-muted-foreground">ჩატების ჩატვირთვა...</p>
       </div>
     );
   }
@@ -88,11 +88,11 @@ export const ChatList = ({ selectedChatId, onSelectChat, onCreateChat }: ChatLis
       <div className="p-4 border-b space-y-3">
         <div className="flex items-center gap-2">
           <MessageSquare className="w-5 h-5 text-primary" />
-          <h2 className="font-semibold text-lg">Chats</h2>
+          <h2 className="font-semibold text-lg">ჩატები</h2>
         </div>
         <Button onClick={onCreateChat} className="w-full" size="sm">
           <Plus className="w-4 h-4 mr-2" />
-          New Chat
+          ახალი ჩატი
         </Button>
       </div>
 
@@ -146,8 +146,8 @@ export const ChatList = ({ selectedChatId, onSelectChat, onCreateChat }: ChatLis
         ) : (
           <div className="p-8 text-center text-muted-foreground">
             <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No chats yet</p>
-            <p className="text-sm">Create your first chat to get started</p>
+            <p>ჯერ არ არის ჩატები</p>
+            <p className="text-sm">შექმენით თქვენი პირველი ჩატი დასაწყებად</p>
           </div>
         )}
       </ScrollArea>

@@ -25,7 +25,7 @@ export const ModeToggle = ({ isStaffMode, onToggle }: ModeToggleProps) => {
       )}
       <div className="flex items-center gap-2">
         <Label htmlFor="mode-toggle" className="font-medium cursor-pointer">
-          {isStaffMode ? "Staff Mode" : "Client Mode"}
+          {isStaffMode ? "პერსონალის რეჟიმი" : "კლიენტის რეჟიმი"}
         </Label>
         <Switch
           id="mode-toggle"

@@ -17,8 +17,8 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const chatSchema = z.object({
-  clientName: z.string().trim().min(2, "Client name must be at least 2 characters").max(100),
-  companyName: z.string().trim().min(2, "Company name must be at least 2 characters").max(100),
+  clientName: z.string().trim().min(2, "კლიენტის სახელი უნდა შეიცავდეს მინიმუმ 2 სიმბოლოს").max(100),
+  companyName: z.string().trim().min(2, "კომპანიის სახელი უნდა შეიცავდეს მინიმუმ 2 სიმბოლოს").max(100),
 });
 
 interface CreateChatDialogProps {
@@ -81,7 +81,7 @@ export const CreateChatDialog = ({ open, onOpenChange }: CreateChatDialogProps) 
       return chat;
     },
     onSuccess: () => {
-      toast.success("Chat created successfully!");
+      toast.success("ჩატი წარმატებით შეიქმნა!");
       console.debug("[CreateChat] Success - invalidating chats list");
       queryClient.invalidateQueries({ queryKey: ["chats"] });
       setClientName("");
@@ -92,7 +92,7 @@ export const CreateChatDialog = ({ open, onOpenChange }: CreateChatDialogProps) 
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
       } else {
-        toast.error("Failed to create chat");
+        toast.error("ჩატის შექმნა ვერ მოხერხდა");
         console.error("[CreateChat] Error details", {
           code: (error as any)?.code,
           message: (error as any)?.message,
@@ -112,26 +112,26 @@ export const CreateChatDialog = ({ open, onOpenChange }: CreateChatDialogProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create New Chat</DialogTitle>
+          <DialogTitle>ახალი ჩატის შექმნა</DialogTitle>
           <DialogDescription>
-            Start a new conversation with a client
+            დაიწყეთ ახალი საუბარი კლიენტთან
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="clientName">Client Name</Label>
+              <Label htmlFor="clientName">კლიენტის სახელი</Label>
               <Input
                 id="clientName"
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
-                placeholder="John Doe"
+                placeholder="გიორგი ბერიძე"
                 required
                 disabled={createChatMutation.isPending}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="companyName">Company Name</Label>
+              <Label htmlFor="companyName">კომპანიის სახელი</Label>
               <Input
                 id="companyName"
                 value={companyName}
@@ -149,10 +149,10 @@ export const CreateChatDialog = ({ open, onOpenChange }: CreateChatDialogProps) 
               onClick={() => onOpenChange(false)}
               disabled={createChatMutation.isPending}
             >
-              Cancel
+              გაუქმება
             </Button>
             <Button type="submit" disabled={createChatMutation.isPending}>
-              {createChatMutation.isPending ? "Creating..." : "Create Chat"}
+              {createChatMutation.isPending ? "იქმნება..." : "ჩატის შექმნა"}
             </Button>
           </DialogFooter>
         </form>

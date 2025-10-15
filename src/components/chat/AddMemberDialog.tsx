@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useRef, useEffect } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -11,8 +11,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -22,11 +24,15 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { z } from "zod";
-import { UserPlus, Shield, Users } from "lucide-react";
+import { UserPlus, Shield, Users, X, Search, Crown } from "lucide-react";
+import { useUserSearch } from "@/hooks/useUserSearch";
+import { Database } from "@/integrations/supabase/types";
+
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 const emailsSchema = z.object({
-  emails: z.string().trim().min(1, "At least one email is required"),
-  role: z.enum(["team_member", "client"]),
+  emails: z.string().trim(),
+  role: z.enum(["admin", "team_member", "client"]),
 });
 
 interface AddMemberDialogProps {
@@ -43,7 +49,41 @@ export const AddMemberDialog = ({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [emails, setEmails] = useState("");
-  const [role, setRole] = useState<"team_member" | "client">("client");
+  const [role, setRole] = useState<"admin" | "team_member" | "client">("client");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState<Profile[]>([]);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const { users, loading } = useUserSearch(searchQuery, chatId);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Check if user is staff (admin or team_member)
+  const { data: isStaff, isLoading: isLoadingRole } = useQuery({
+    queryKey: ["is_staff", user?.id], // Changed from "user_roles" to avoid cache conflict
+    queryFn: async () => {
+      if (!user) return false;
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .in("role", ["admin", "team_member"]);
+
+      if (error) throw error;
+      return data && data.length > 0;
+    },
+    enabled: !!user && open,
+  });
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setPopoverOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const addMembersMutation = useMutation({
     mutationFn: async ({
@@ -51,9 +91,14 @@ export const AddMemberDialog = ({
       role,
     }: {
       emails: string;
-      role: "team_member" | "client";
+      role: "admin" | "team_member" | "client";
     }) => {
       const validated = emailsSchema.parse({ emails, role });
+
+      // Check if we have any emails to process
+      if (!validated.emails || validated.emails.trim().length === 0) {
+        throw new Error("სულ მცირე ერთი ელ. ფოსტა სავალდებულოა");
+      }
 
       // Get chat details
       const { data: chat } = await supabase
@@ -117,7 +162,7 @@ export const AddMemberDialog = ({
               results.push({
                 email,
                 success: false,
-                error: "Already a member",
+                error: "უკვე არის წევრი",
               });
               continue;
             }
@@ -139,19 +184,28 @@ export const AddMemberDialog = ({
               continue;
             }
 
-            // Assign role if they don't have it
-            const { data: existingRole } = await supabase
-              .from("user_roles")
-              .select("id")
-              .eq("user_id", profile.id)
-              .eq("role", validated.role)
-              .maybeSingle();
+            // Assign role: delete all existing roles and add new one
+            console.log('[AddMembers] Assigning role:', validated.role, 'to user:', profile.id);
 
-            if (!existingRole) {
-              await supabase.from("user_roles").insert({
-                user_id: profile.id,
-                role: validated.role,
-              });
+            // Delete all existing roles
+            await supabase
+              .from("user_roles")
+              .delete()
+              .eq("user_id", profile.id);
+
+            // Add new role (only if not "client" - client means no roles)
+            if (validated.role !== "client") {
+              const { error: roleError } = await supabase
+                .from("user_roles")
+                .insert({
+                  user_id: profile.id,
+                  role: validated.role,
+                });
+
+              if (roleError) {
+                console.error('[AddMembers] Error assigning role:', roleError);
+                // Don't fail the whole operation, just log it
+              }
             }
 
             results.push({
@@ -183,7 +237,7 @@ export const AddMemberDialog = ({
                 results.push({
                   email,
                   success: false,
-                  error: "Invitation already sent",
+                  error: "მოსაწვევი უკვე გაგზავნილია",
                 });
               } else {
                 results.push({
@@ -220,7 +274,7 @@ export const AddMemberDialog = ({
                 email,
                 success: true,
                 invited: true,
-                error: "Invitation created but email failed to send",
+                error: "მოსაწვევი შეიქმნა, მაგრამ ელ. ფოსტის გაგზავნა ვერ მოხერხდა",
               });
             }
           }
@@ -229,7 +283,7 @@ export const AddMemberDialog = ({
           results.push({
             email,
             success: false,
-            error: "Invalid email format",
+            error: "არასწორი ელ. ფოსტის ფორმატი",
           });
         }
       }
@@ -243,13 +297,13 @@ export const AddMemberDialog = ({
 
       if (addedCount > 0) {
         toast.success(
-          `Added ${addedCount} member${addedCount > 1 ? "s" : ""} to chat`
+          `დაემატა ${addedCount} წევრი ჩატში`
         );
       }
 
       if (invitedCount > 0) {
         toast.success(
-          `Sent ${invitedCount} invitation${invitedCount > 1 ? "s" : ""} via email`
+          `გაიგზავნა ${invitedCount} მოსაწვევი ელ. ფოსტით`
         );
       }
 
@@ -258,19 +312,21 @@ export const AddMemberDialog = ({
           .filter((r) => !r.success)
           .map((r) => `${r.email} (${r.error})`)
           .join(", ");
-        toast.error(`Failed: ${failedEmails}`);
+        toast.error(`ვერ მოხერხდა: ${failedEmails}`);
       }
 
       queryClient.invalidateQueries({ queryKey: ["chat_members", chatId] });
       setEmails("");
       setRole("client");
+      setSelectedUsers([]);
+      setSearchQuery("");
       onOpenChange(false);
     },
     onError: (error) => {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
       } else {
-        toast.error("Failed to add members");
+        toast.error("წევრების დამატება ვერ მოხერხდა");
         console.error("[AddMembers] Unexpected error", error);
       }
     },
@@ -278,28 +334,99 @@ export const AddMemberDialog = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (emails.trim()) {
-      addMembersMutation.mutate({ emails: emails.trim(), role });
+
+    // Combine selected users' emails with manually entered emails
+    const selectedEmails = selectedUsers.map(u => u.email).join(", ");
+    const allEmails = [selectedEmails, emails.trim()]
+      .filter(e => e.length > 0)
+      .join(", ");
+
+    if (allEmails.trim()) {
+      addMembersMutation.mutate({ emails: allEmails, role });
+    } else {
+      toast.error("გთხოვთ აირჩიოთ ან შეიყვანოთ სულ მცირე ერთი ელ. ფოსტა");
     }
   };
 
+  const handleSelectUser = (profile: Profile) => {
+    if (!selectedUsers.find(u => u.id === profile.id)) {
+      setSelectedUsers([...selectedUsers, profile]);
+    }
+    setSearchQuery("");
+    setPopoverOpen(false);
+  };
+
+  const handleRemoveUser = (userId: string) => {
+    setSelectedUsers(selectedUsers.filter(u => u.id !== userId));
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      // Reset state when closing
+      setEmails("");
+      setRole("client");
+      setSearchQuery("");
+      setSelectedUsers([]);
+    }
+    onOpenChange(open);
+  };
+
+  // Show loading state while checking role
+  if (isLoadingRole) {
+    return (
+      <Dialog open={open} onOpenChange={handleDialogClose}>
+        <DialogContent className="sm:max-w-[600px]">
+          <div className="text-center py-8">იტვირთება...</div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Show permission denied if not staff (admin or team_member)
+  if (!isStaff) {
+    return (
+      <Dialog open={open} onOpenChange={handleDialogClose}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-destructive" />
+              წვდომა აკრძალულია
+            </DialogTitle>
+            <DialogDescription>
+              მხოლოდ ადმინისტრატორებს და გუნდის წევრებს აქვთ უფლება დაამატონ წევრები ჩატში
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleDialogClose(false)}
+            >
+              დახურვა
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={open} onOpenChange={handleDialogClose}>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="w-5 h-5" />
-            Add Members to Chat
+            წევრების დამატება ჩატში
           </DialogTitle>
           <DialogDescription>
-            Enter email addresses (one per line or comma-separated) and select their role
+            მოძებნეთ რეგისტრირებული მომხმარებლები ან შეიყვანეთ ელ. ფოსტის მისამართები
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select value={role} onValueChange={(v: "team_member" | "client") => setRole(v)}>
+              <Label htmlFor="role">როლი</Label>
+              <Select value={role} onValueChange={(v: "admin" | "team_member" | "client") => setRole(v)}>
                 <SelectTrigger
                   id="role"
                   disabled={addMembersMutation.isPending}
@@ -310,36 +437,126 @@ export const AddMemberDialog = ({
                   <SelectItem value="client">
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4" />
-                      <span>Client</span>
+                      <span>კლიენტი</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="team_member">
                     <div className="flex items-center gap-2">
                       <Shield className="w-4 h-4" />
-                      <span>Team Member (Staff)</span>
+                      <span>გუნდის წევრი (პერსონალი)</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="admin">
+                    <div className="flex items-center gap-2">
+                      <Crown className="w-4 h-4" />
+                      <span>ადმინისტრატორი</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
                 {role === "client"
-                  ? "Clients can view and send regular messages"
-                  : "Team members can view all messages including staff-only notes"}
+                  ? "კლიენტებს შეუძლიათ ნახონ და გააგზავნონ ჩვეულებრივი შეტყობინებები"
+                  : role === "team_member"
+                  ? "გუნდის წევრებს შეუძლიათ ნახონ ყველა შეტყობინება, მათ შორის პერსონალის შენიშვნები"
+                  : "ადმინისტრატორებს აქვთ სრული წვდომა სისტემაზე და შეუძლიათ მართონ წევრები და როლები"}
               </p>
             </div>
+
+            {/* User Search */}
             <div className="space-y-2">
-              <Label htmlFor="emails">Email Addresses</Label>
+              <Label htmlFor="search">მოძებნეთ რეგისტრირებული მომხმარებლები</Label>
+              <div className="relative" ref={searchRef}>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="search"
+                    type="text"
+                    placeholder="აკრიფეთ ელ. ფოსტა ან სახელი..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => setPopoverOpen(true)}
+                    className="pl-9"
+                    disabled={addMembersMutation.isPending}
+                  />
+                </div>
+
+                {/* Dropdown Results */}
+                {popoverOpen && searchQuery.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-auto">
+                    {loading ? (
+                      <div className="p-3 text-sm text-muted-foreground text-center">
+                        იტვირთება...
+                      </div>
+                    ) : users.length === 0 ? (
+                      <div className="p-3 text-sm text-muted-foreground text-center">
+                        მომხმარებელი ვერ მოიძებნა
+                      </div>
+                    ) : (
+                      <div className="py-1">
+                        {users.map((profile) => (
+                          <button
+                            key={profile.id}
+                            type="button"
+                            onClick={() => handleSelectUser(profile)}
+                            className="w-full px-3 py-2 text-left hover:bg-accent cursor-pointer flex flex-col"
+                            disabled={addMembersMutation.isPending}
+                          >
+                            <span className="font-medium text-sm">
+                              {profile.full_name || profile.email}
+                            </span>
+                            {profile.full_name && (
+                              <span className="text-xs text-muted-foreground">
+                                {profile.email}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Selected Users */}
+              {selectedUsers.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedUsers.map((user) => (
+                    <Badge
+                      key={user.id}
+                      variant="secondary"
+                      className="flex items-center gap-1 pl-3 pr-2 py-1"
+                    >
+                      <span className="text-sm">
+                        {user.full_name || user.email}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveUser(user.id)}
+                        className="ml-1 hover:bg-muted rounded-full p-0.5"
+                        disabled={addMembersMutation.isPending}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Manual Email Input */}
+            <div className="space-y-2">
+              <Label htmlFor="emails">ან შეიყვანეთ ელ. ფოსტის მისამართები</Label>
               <Textarea
                 id="emails"
                 value={emails}
                 onChange={(e) => setEmails(e.target.value)}
-                placeholder="user1@example.com, user2@example.com&#10;or one email per line"
-                rows={5}
-                required
+                placeholder="user1@example.com, user2@example.com&#10;ან თითო ელ. ფოსტა ცალკე ხაზზე"
+                rows={3}
                 disabled={addMembersMutation.isPending}
               />
               <p className="text-xs text-muted-foreground">
-                Separate multiple emails with commas or new lines
+                განაცალკევეთ რამდენიმე ელ. ფოსტა მძიმით ან ახალი ხაზებით
               </p>
             </div>
           </div>
@@ -347,13 +564,13 @@ export const AddMemberDialog = ({
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleDialogClose(false)}
               disabled={addMembersMutation.isPending}
             >
-              Cancel
+              გაუქმება
             </Button>
             <Button type="submit" disabled={addMembersMutation.isPending}>
-              {addMembersMutation.isPending ? "Adding..." : "Add Members"}
+              {addMembersMutation.isPending ? "ემატება..." : "წევრების დამატება"}
             </Button>
           </DialogFooter>
         </form>

@@ -5,10 +5,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, MessageSquare, UserPlus } from "lucide-react";
+import { Send, MessageSquare, MoreVertical } from "lucide-react";
 import { ModeToggle } from "./ModeToggle";
 import { MessageBubble } from "./MessageBubble";
-import { AddMemberDialog } from "./AddMemberDialog";
+import { ChatDetailsSheet } from "./ChatDetailsSheet";
 import { EmojiPicker } from "./EmojiPicker";
 import { FileUploadButton, AttachmentPreview } from "./FileUpload";
 import { AttachmentPreviewList } from "./AttachmentPreviewList";
@@ -43,10 +43,32 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [isStaffMode, setIsStaffMode] = useState(false);
-  const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Check if current user is staff
+  const { data: currentUserRoles = [] } = useQuery({
+    queryKey: ["user_roles", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      return data?.map((r) => r.role) || [];
+    },
+    enabled: !!user,
+    staleTime: 0,
+    cacheTime: 0,
+  });
+
+  const isStaff =
+    Array.isArray(currentUserRoles) &&
+    (currentUserRoles.includes("admin") || currentUserRoles.includes("team_member"));
 
   const { data: messages, isLoading } = useQuery({
     queryKey: ["messages", chatId],
@@ -60,22 +82,49 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
 
       if (messagesError) throw messagesError;
 
+      if (!messagesData || messagesData.length === 0) {
+        return [];
+      }
+
       // Fetch profiles for all senders
       const senderIds = [...new Set(messagesData.map(m => m.sender_id))];
+
+      if (senderIds.length === 0) {
+        return messagesData.map(msg => ({
+          ...msg,
+          profiles: { full_name: null, email: "Unknown" }
+        })) as Message[];
+      }
+
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("id, full_name, email")
         .in("id", senderIds);
 
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error('[ChatWindow] Error fetching profiles:', profilesError);
+        // Return messages with Unknown profiles if profile fetch fails
+        return messagesData.map(msg => ({
+          ...msg,
+          profiles: { full_name: null, email: "Unknown User" }
+        })) as Message[];
+      }
 
       // Map profiles to messages
-      const profilesMap = new Map(profilesData.map(p => [p.id, p]));
-      
-      return messagesData.map(msg => ({
-        ...msg,
-        profiles: profilesMap.get(msg.sender_id) || { full_name: null, email: "Unknown" }
-      })) as Message[];
+      const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
+
+      return messagesData.map(msg => {
+        const profile = profilesMap.get(msg.sender_id);
+
+        if (!profile) {
+          console.warn('[ChatWindow] No profile found for sender:', msg.sender_id);
+        }
+
+        return {
+          ...msg,
+          profiles: profile || { full_name: null, email: "Unknown User" }
+        };
+      }) as Message[];
     },
   });
 
@@ -123,6 +172,44 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
     }
   }, [messages]);
 
+  const editMessageMutation = useMutation({
+    mutationFn: async ({ messageId, content }: { messageId: string; content: string }) => {
+      const { error } = await supabase
+        .from("messages")
+        .update({ content })
+        .eq("id", messageId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["messages", chatId] });
+      toast.success("მესიჯი შეიცვალა");
+    },
+    onError: (error) => {
+      toast.error("მესიჯის რედაქტირება ვერ მოხერხდა");
+      console.error(error);
+    },
+  });
+
+  const deleteMessageMutation = useMutation({
+    mutationFn: async (messageId: string) => {
+      const { error } = await supabase
+        .from("messages")
+        .delete()
+        .eq("id", messageId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["messages", chatId] });
+      toast.success("მესიჯი წაიშალა");
+    },
+    onError: (error) => {
+      toast.error("მესიჯის წაშლა ვერ მოხერხდა");
+      console.error(error);
+    },
+  });
+
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, files }: { content: string; files: AttachmentPreview[] }) => {
       const uploadedAttachments: MessageAttachment[] = [];
@@ -145,15 +232,23 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
             throw new Error(`Failed to upload ${attachment.file.name}`);
           }
 
-          // Get public URL
-          const { data: { publicUrl } } = supabase.storage
+          // Get signed URL (valid for 1 year) - bucket is private
+          // Use download: 'attachment.file.name' to preserve original filename when downloading
+          const { data: signedUrlData, error: signedUrlError } = await supabase.storage
             .from('chat-attachments')
-            .getPublicUrl(fileName);
+            .createSignedUrl(fileName, 31536000, {
+              download: false // Don't force download, allow inline viewing
+            });
+
+          if (signedUrlError) {
+            console.error('Signed URL error:', signedUrlError);
+            throw new Error(`Failed to create URL for ${attachment.file.name}`);
+          }
 
           uploadedAttachments.push({
             name: attachment.file.name,
             type: attachment.file.type,
-            url: publicUrl,
+            url: signedUrlData.signedUrl,
             size: attachment.file.size,
           });
         }
@@ -218,7 +313,7 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-chat-bg">
-        <p className="text-muted-foreground">Loading messages...</p>
+        <p className="text-muted-foreground">შეტყობინებების ჩატვირთვა...</p>
       </div>
     );
   }
@@ -233,15 +328,15 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
             <p className="text-sm text-muted-foreground">{chat?.company_name}</p>
           </div>
           <div className="flex items-center gap-3">
+            {/* Only show ModeToggle for staff */}
+            {isStaff && <ModeToggle isStaffMode={isStaffMode} onToggle={setIsStaffMode} />}
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setAddMemberOpen(true)}
+              variant="ghost"
+              size="icon"
+              onClick={() => setDetailsOpen(true)}
             >
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add Member
+              <MoreVertical className="w-5 h-5" />
             </Button>
-            <ModeToggle isStaffMode={isStaffMode} onToggle={setIsStaffMode} />
           </div>
         </div>
       </div>
@@ -253,12 +348,15 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
             {filteredMessages.map((msg) => (
               <MessageBubble
                 key={msg.id}
+                messageId={msg.id}
                 message={msg.content}
                 senderName={msg.profiles?.full_name || msg.profiles?.email || "Unknown"}
                 isOwn={msg.sender_id === user?.id}
                 isStaffOnly={msg.is_staff_only}
                 timestamp={msg.created_at}
                 attachments={msg.attachments}
+                onEdit={(newContent) => editMessageMutation.mutate({ messageId: msg.id, content: newContent })}
+                onDelete={() => deleteMessageMutation.mutate(msg.id)}
               />
             ))}
             <div ref={scrollRef} />
@@ -267,9 +365,9 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
           <div className="h-full flex items-center justify-center text-center">
             <div>
               <MessageSquare className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
-              <p className="text-muted-foreground text-lg mb-2">No messages yet</p>
+              <p className="text-muted-foreground text-lg mb-2">ჯერ არ არის შეტყობინებები</p>
               <p className="text-sm text-muted-foreground">
-                Start the conversation by sending a message below
+                დაიწყეთ საუბარი შეტყობინების გაგზავნით
               </p>
             </div>
           </div>
@@ -297,8 +395,8 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
             onChange={(e) => setMessage(e.target.value)}
             placeholder={
               isStaffMode
-                ? "Staff-only message..."
-                : "Type a message..."
+                ? "პერსონალის შეტყობინება..."
+                : "შეიყვანეთ შეტყობინება..."
             }
             className="flex-1"
             disabled={sendMessageMutation.isPending}
@@ -315,15 +413,17 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
         {/* Staff mode indicator */}
         {isStaffMode && (
           <p className="text-xs text-staff text-center mt-2">
-            Messages sent in staff mode are only visible to team members
+            პერსონალის რეჟიმში გაგზავნილი შეტყობინებები ხილული იქნება მხოლოდ გუნდის წევრებისთვის
           </p>
         )}
       </div>
 
-      <AddMemberDialog
-        open={addMemberOpen}
-        onOpenChange={setAddMemberOpen}
+      <ChatDetailsSheet
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
         chatId={chatId}
+        isStaffMode={isStaffMode}
+        onToggleStaffMode={setIsStaffMode}
       />
     </div>
   );

@@ -23,14 +23,14 @@ const Index = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    toast.success("Logged out successfully");
+    toast.success("წარმატებით გახვედით სისტემიდან");
     navigate("/auth");
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">იტვირთება...</p>
       </div>
     );
   }
@@ -50,13 +50,13 @@ const Index = () => {
           <div>
             <h1 className="font-bold text-xl">DualChat</h1>
             <p className="text-xs text-muted-foreground">
-              Professional Team Communication
+              პროფესიონალური გუნდური კომუნიკაცია
             </p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={handleLogout}>
           <LogOut className="w-4 h-4 mr-2" />
-          Logout
+          გასვლა
         </Button>
       </header>
 
@@ -77,14 +77,14 @@ const Index = () => {
                 <MessageSquare className="w-16 h-16 text-primary" />
               </div>
               <div>
-                <h2 className="text-2xl font-semibold mb-2">Welcome to DualChat</h2>
+                <h2 className="text-2xl font-semibold mb-2">მოგესალმებით DualChat-ში</h2>
                 <p className="text-muted-foreground max-w-md">
-                  Select a chat from the sidebar to start communicating with your clients,
-                  or create a new chat to get started.
+                  აირჩიეთ ჩატი გვერდითი პანელიდან, რომ დაიწყოთ კომუნიკაცია თქვენს კლიენტებთან,
+                  ან შექმენით ახალი ჩატი დასაწყებად.
                 </p>
               </div>
               <Button onClick={() => setCreateDialogOpen(true)}>
-                Create Your First Chat
+                შექმენით თქვენი პირველი ჩატი
               </Button>
             </div>
           </div>

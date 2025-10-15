@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test User Roles</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h1>Test User Roles</h1>
+  <div id="output"></div>
+
+  <script type="module">
+    const { createClient } = supabase;
+
+    const supabaseClient = createClient(
+      'https://iptgtauitdkvhjvlciji.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwdGd0YXVpdGRrdmhqdmxjaWppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MTY5MjMsImV4cCI6MjA3NjA5MjkyM30.qNqpSWNAS3jnHU7viVnk7nfLfBnALBnTnXgUQaMSvKc'
+    );
+
+    async function testRoles() {
+      const output = document.getElementById('output');
+
+      // Get current user
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+
+      if (userError) {
+        output.innerHTML = '<p style="color:red">Error getting user: ' + userError.message + '</p>';
+        return;
+      }
+
+      if (!user) {
+        output.innerHTML = '<p style="color:orange">No user logged in. Please login first.</p>';
+        return;
+      }
+
+      output.innerHTML = `<p><strong>Current User:</strong> ${user.email}</p>`;
+      output.innerHTML += `<p><strong>User ID:</strong> ${user.id}</p>`;
+
+      // Try to fetch user roles
+      const { data: roles, error: rolesError } = await supabaseClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+
+      if (rolesError) {
+        output.innerHTML += '<p style="color:red"><strong>Error fetching roles:</strong> ' + rolesError.message + '</p>';
+        output.innerHTML += '<pre>' + JSON.stringify(rolesError, null, 2) + '</pre>';
+      } else if (roles && roles.length > 0) {
+        output.innerHTML += '<p style="color:green"><strong>Roles found:</strong> ' + roles.map(r => r.role).join(', ') + '</p>';
+
+        const isStaff = roles.some(r => r.role === 'admin' || r.role === 'team_member');
+        output.innerHTML += `<p><strong>Is Staff:</strong> ${isStaff ? 'YES ✓' : 'NO ✗'}</p>`;
+      } else {
+        output.innerHTML += '<p style="color:red"><strong>No roles found for this user!</strong></p>';
+        output.innerHTML += '<p>This is why you see "Only staff has access"</p>';
+      }
+    }
+
+    // Run test when page loads
+    testRoles();
+  </script>
+</body>
+</html>

@@ -12,14 +12,14 @@ import { MessageSquare, Mail } from "lucide-react";
 import { z } from "zod";
 
 const signupSchema = z.object({
-  fullName: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
-  email: z.string().trim().email("Invalid email address").max(255),
-  password: z.string().min(6, "Password must be at least 6 characters").max(100),
+  fullName: z.string().trim().min(2, "სახელი უნდა შეიცავდეს მინიმუმ 2 სიმბოლოს").max(100),
+  email: z.string().trim().email("არასწორი ელ. ფოსტის მისამართი").max(255),
+  password: z.string().min(6, "პაროლი უნდა შეიცავდეს მინიმუმ 6 სიმბოლოს").max(100),
 });
 
 const loginSchema = z.object({
-  email: z.string().trim().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().trim().email("არასწორი ელ. ფოსტის მისამართი"),
+  password: z.string().min(1, "პაროლი სავალდებულოა"),
 });
 
 const Auth = () => {
@@ -44,18 +44,18 @@ const Auth = () => {
         .maybeSingle()
         .then(({ data, error }) => {
           if (error || !data) {
-            toast.error("Invalid or expired invitation");
+            toast.error("არასწორი ან ვადაგასული მოსაწვევი");
             return;
           }
 
           if (data.accepted_at) {
-            toast.info("This invitation has already been used");
+            toast.info("ეს მოსაწვევი უკვე გამოყენებულია");
             return;
           }
 
           const expiresAt = new Date(data.expires_at);
           if (expiresAt < new Date()) {
-            toast.error("This invitation has expired");
+            toast.error("ეს მოსაწვევი ვადაგასულია");
             return;
           }
 
@@ -84,7 +84,7 @@ const Auth = () => {
 
       // If invitation exists, validate email matches
       if (invitationData && validated.email !== invitationData.email) {
-        toast.error(`This invitation is for ${invitationData.email}`);
+        toast.error(`ეს მოსაწვევი განკუთვნილია ${invitationData.email}-ისთვის`);
         setLoading(false);
         return;
       }
@@ -104,7 +104,7 @@ const Auth = () => {
 
       if (error) {
         if (error.message.includes("already registered")) {
-          toast.error("This email is already registered. Please login instead.");
+          toast.error("ეს ელ. ფოსტა უკვე რეგისტრირებულია. გთხოვთ შეხვიდეთ სისტემაში.");
         } else {
           toast.error(error.message);
         }
@@ -139,10 +139,10 @@ const Auth = () => {
               .update({ accepted_at: new Date().toISOString() })
               .eq("token", token!);
 
-            toast.success(`Welcome! You've been added to ${invitationData.chatName}`);
+            toast.success(`მოგესალმებით! თქვენ დამატებული ხართ ${invitationData.chatName}-ში`);
           }
         } else {
-          toast.success("Account created! Redirecting...");
+          toast.success("ანგარიში შეიქმნა! გადამისამართება...");
         }
         navigate("/");
       }
@@ -150,7 +150,7 @@ const Auth = () => {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
       } else {
-        toast.error("An error occurred during signup");
+        toast.error("რეგისტრაციის დროს მოხდა შეცდომა");
       }
     } finally {
       setLoading(false);
@@ -177,19 +177,19 @@ const Auth = () => {
 
       if (error) {
         if (error.message.includes("Invalid login credentials")) {
-          toast.error("Invalid email or password");
+          toast.error("არასწორი ელ. ფოსტა ან პაროლი");
         } else {
           toast.error(error.message);
         }
       } else {
-        toast.success("Welcome back!");
+        toast.success("კეთილი იყოს თქვენი დაბრუნება!");
         navigate("/");
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
       } else {
-        toast.error("An error occurred during login");
+        toast.error("შესვლის დროს მოხდა შეცდომა");
       }
     } finally {
       setLoading(false);
@@ -207,7 +207,7 @@ const Auth = () => {
           </div>
           <CardTitle className="text-2xl font-bold">DualChat</CardTitle>
           <CardDescription>
-            Professional communication platform for marketing teams
+            პროფესიონალური კომუნიკაციის პლატფორმა მარკეტინგის გუნდებისთვის
           </CardDescription>
         </CardHeader>
 
@@ -216,23 +216,23 @@ const Auth = () => {
             <Alert className="mb-4 border-primary/20 bg-primary/5">
               <Mail className="h-4 w-4" />
               <AlertDescription>
-                You've been invited to join <strong>{invitationData.chatName}</strong> as a{" "}
-                <strong>{invitationData.role === "team_member" ? "Team Member" : "Client"}</strong>.
-                Please sign up with <strong>{invitationData.email}</strong> to accept.
+                თქვენ მოწვეული ხართ შეუერთდეთ <strong>{invitationData.chatName}</strong>-ს როგორც{" "}
+                <strong>{invitationData.role === "team_member" ? "გუნდის წევრი" : "კლიენტი"}</strong>.
+                გთხოვთ დარეგისტრირდეთ <strong>{invitationData.email}</strong>-ით მოსაწვევის მისაღებად.
               </AlertDescription>
             </Alert>
           )}
 
           <Tabs defaultValue={invitationData ? "signup" : "login"} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              <TabsTrigger value="login">შესვლა</TabsTrigger>
+              <TabsTrigger value="signup">რეგისტრაცია</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
+                  <Label htmlFor="login-email">ელ. ფოსტა</Label>
                   <Input
                     id="login-email"
                     name="email"
@@ -243,7 +243,7 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="login-password">Password</Label>
+                  <Label htmlFor="login-password">პაროლი</Label>
                   <Input
                     id="login-password"
                     name="password"
@@ -254,7 +254,7 @@ const Auth = () => {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Logging in..." : "Login"}
+                  {loading ? "შესვლა..." : "შესვლა"}
                 </Button>
               </form>
             </TabsContent>
@@ -262,18 +262,18 @@ const Auth = () => {
             <TabsContent value="signup">
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-name">Full Name</Label>
+                  <Label htmlFor="signup-name">სრული სახელი</Label>
                   <Input
                     id="signup-name"
                     name="fullName"
                     type="text"
-                    placeholder="John Doe"
+                    placeholder="გიორგი ბერიძე"
                     required
                     disabled={loading}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
+                  <Label htmlFor="signup-email">ელ. ფოსტა</Label>
                   <Input
                     id="signup-email"
                     name="email"
@@ -286,7 +286,7 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
+                  <Label htmlFor="signup-password">პაროლი</Label>
                   <Input
                     id="signup-password"
                     name="password"
@@ -298,7 +298,7 @@ const Auth = () => {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Creating account..." : "Sign Up"}
+                  {loading ? "ანგარიშის შექმნა..." : "რეგისტრაცია"}
                 </Button>
               </form>
             </TabsContent>
@@ -306,7 +306,7 @@ const Auth = () => {
         </CardContent>
 
         <CardFooter className="text-center text-sm text-muted-foreground">
-          By continuing, you agree to our Terms & Privacy Policy
+          გაგრძელებით თქვენ ეთანხმებით ჩვენს წესებსა და კონფიდენციალურობის პოლიტიკას
         </CardFooter>
       </Card>
     </div>
