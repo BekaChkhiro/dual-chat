@@ -123,9 +123,9 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
   const switchOrganization = (organizationId: string) => {
     const org = organizations.find((o) => o.id === organizationId);
     if (org) {
-      setCurrentOrganization(org);
       localStorage.setItem(CURRENT_ORG_KEY, organizationId);
-      toast.success(`გადავედით: ${org.name}`);
+      // Refresh the page to ensure all data loads correctly for the new organization
+      window.location.reload();
     }
   };
 
