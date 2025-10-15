@@ -9,7 +9,17 @@ import { Send, MessageSquare, UserPlus } from "lucide-react";
 import { ModeToggle } from "./ModeToggle";
 import { MessageBubble } from "./MessageBubble";
 import { AddMemberDialog } from "./AddMemberDialog";
+import { EmojiPicker } from "./EmojiPicker";
+import { FileUploadButton, AttachmentPreview } from "./FileUpload";
+import { AttachmentPreviewList } from "./AttachmentPreviewList";
 import { toast } from "sonner";
+
+export interface MessageAttachment {
+  name: string;
+  type: string;
+  url: string;
+  size: number;
+}
 
 interface Message {
   id: string;
@@ -17,6 +27,7 @@ interface Message {
   sender_id: string;
   is_staff_only: boolean;
   created_at: string;
+  attachments?: MessageAttachment[];
   profiles: {
     full_name: string | null;
     email: string;
@@ -33,7 +44,9 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
   const [message, setMessage] = useState("");
   const [isStaffMode, setIsStaffMode] = useState(false);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: messages, isLoading } = useQuery({
     queryKey: ["messages", chatId],
@@ -111,31 +124,89 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
   }, [messages]);
 
   const sendMessageMutation = useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async ({ content, files }: { content: string; files: AttachmentPreview[] }) => {
+      const uploadedAttachments: MessageAttachment[] = [];
+
+      // Upload files to Supabase storage
+      if (files.length > 0) {
+        for (const attachment of files) {
+          const fileExt = attachment.file.name.split('.').pop();
+          const fileName = `${user!.id}/${chatId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('chat-attachments')
+            .upload(fileName, attachment.file, {
+              cacheControl: '3600',
+              upsert: false,
+            });
+
+          if (uploadError) {
+            console.error('Upload error:', uploadError);
+            throw new Error(`Failed to upload ${attachment.file.name}`);
+          }
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('chat-attachments')
+            .getPublicUrl(fileName);
+
+          uploadedAttachments.push({
+            name: attachment.file.name,
+            type: attachment.file.type,
+            url: publicUrl,
+            size: attachment.file.size,
+          });
+        }
+      }
+
+      // Insert message with attachments
       const { error } = await supabase.from("messages").insert({
         chat_id: chatId,
         sender_id: user!.id,
-        content,
+        content: content || '',
         is_staff_only: isStaffMode,
+        attachments: uploadedAttachments,
       });
 
       if (error) throw error;
     },
     onSuccess: () => {
       setMessage("");
+      setAttachments([]);
       queryClient.invalidateQueries({ queryKey: ["messages", chatId] });
     },
     onError: (error) => {
-      toast.error("Failed to send message");
+      toast.error(error instanceof Error ? error.message : "Failed to send message");
       console.error(error);
     },
   });
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (message.trim() && user) {
-      sendMessageMutation.mutate(message.trim());
+    if ((message.trim() || attachments.length > 0) && user) {
+      sendMessageMutation.mutate({ content: message.trim(), files: attachments });
     }
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setMessage((prev) => prev + emoji);
+    inputRef.current?.focus();
+  };
+
+  const handleFilesSelect = (newFiles: AttachmentPreview[]) => {
+    setAttachments((prev) => [...prev, ...newFiles]);
+  };
+
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments((prev) => {
+      const newAttachments = [...prev];
+      const removed = newAttachments.splice(index, 1)[0];
+      // Revoke object URL to prevent memory leaks
+      if (removed.preview) {
+        URL.revokeObjectURL(removed.preview);
+      }
+      return newAttachments;
+    });
   };
 
   // Staff Mode: show only staff-only messages
@@ -178,7 +249,7 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
       {/* Messages */}
       <ScrollArea className="flex-1 p-4">
         {filteredMessages && filteredMessages.length > 0 ? (
-          <div className="space-y-4 max-w-4xl mx-auto">
+          <div className="space-y-4">
             {filteredMessages.map((msg) => (
               <MessageBubble
                 key={msg.id}
@@ -187,6 +258,7 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
                 isOwn={msg.sender_id === user?.id}
                 isStaffOnly={msg.is_staff_only}
                 timestamp={msg.created_at}
+                attachments={msg.attachments}
               />
             ))}
             <div ref={scrollRef} />
@@ -206,8 +278,21 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
 
       {/* Input */}
       <div className="border-t bg-card p-4">
-        <form onSubmit={handleSend} className="flex gap-2 max-w-4xl mx-auto">
+        {/* Attachment Preview */}
+        <AttachmentPreviewList
+          attachments={attachments}
+          onRemove={handleRemoveAttachment}
+        />
+
+        {/* Input Row - All in one line */}
+        <form onSubmit={handleSend} className="flex items-center gap-2 w-full">
+          <FileUploadButton
+            onFilesSelect={handleFilesSelect}
+            disabled={sendMessageMutation.isPending}
+          />
+          <EmojiPicker onEmojiSelect={handleEmojiSelect} />
           <Input
+            ref={inputRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder={
@@ -220,12 +305,14 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
           />
           <Button
             type="submit"
-            disabled={!message.trim() || sendMessageMutation.isPending}
+            disabled={(!message.trim() && attachments.length === 0) || sendMessageMutation.isPending}
             className={isStaffMode ? "bg-staff hover:bg-staff-hover" : ""}
           >
             <Send className="w-4 h-4" />
           </Button>
         </form>
+
+        {/* Staff mode indicator */}
         {isStaffMode && (
           <p className="text-xs text-staff text-center mt-2">
             Messages sent in staff mode are only visible to team members
