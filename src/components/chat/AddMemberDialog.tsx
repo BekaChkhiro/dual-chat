@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,7 @@ export const AddMemberDialog = ({
   onOpenChange,
   chatId,
 }: AddMemberDialogProps) => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [emails, setEmails] = useState("");
   const [role, setRole] = useState<"team_member" | "client">("client");
@@ -52,6 +54,23 @@ export const AddMemberDialog = ({
       role: "team_member" | "client";
     }) => {
       const validated = emailsSchema.parse({ emails, role });
+
+      // Get chat details
+      const { data: chat } = await supabase
+        .from("chats")
+        .select("client_name")
+        .eq("id", chatId)
+        .single();
+
+      // Get inviter profile
+      const { data: inviterProfile } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", user!.id)
+        .single();
+
+      const inviterName = inviterProfile?.full_name || inviterProfile?.email || "Someone";
+      const chatName = chat?.client_name || "a chat";
 
       // Split by comma or newline and clean up
       const emailList = validated.emails
@@ -70,6 +89,7 @@ export const AddMemberDialog = ({
         success: boolean;
         name?: string;
         error?: string;
+        invited?: boolean;
       }[] = [];
 
       for (const email of emailList) {
@@ -77,87 +97,133 @@ export const AddMemberDialog = ({
           // Validate email format
           z.string().email().parse(email);
 
-          // Find user by email
-          const { data: profile, error: profileError } = await supabase
+          // Check if user exists
+          const { data: profile } = await supabase
             .from("profiles")
             .select("id, email, full_name")
             .eq("email", email)
             .maybeSingle();
 
-          if (profileError || !profile) {
-            console.debug("[AddMembers] User not found", { email, profileError });
-            results.push({
-              email,
-              success: false,
-              error: "User not found",
-            });
-            continue;
-          }
+          if (profile) {
+            // User exists - add directly
+            const { data: existing } = await supabase
+              .from("chat_members")
+              .select("id")
+              .eq("chat_id", chatId)
+              .eq("user_id", profile.id)
+              .maybeSingle();
 
-          // Check if already a member
-          const { data: existing } = await supabase
-            .from("chat_members")
-            .select("id")
-            .eq("chat_id", chatId)
-            .eq("user_id", profile.id)
-            .maybeSingle();
+            if (existing) {
+              results.push({
+                email,
+                success: false,
+                error: "Already a member",
+              });
+              continue;
+            }
 
-          if (existing) {
-            console.debug("[AddMembers] Already a member", { email });
-            results.push({
-              email,
-              success: false,
-              error: "Already a member",
-            });
-            continue;
-          }
-
-          // Add as chat member
-          const { error: memberError } = await supabase
-            .from("chat_members")
-            .insert({
-              chat_id: chatId,
-              user_id: profile.id,
-            });
-
-          if (memberError) {
-            console.debug("[AddMembers] Member insert error", { email, memberError });
-            results.push({
-              email,
-              success: false,
-              error: memberError.message,
-            });
-            continue;
-          }
-
-          // Check if user already has this role
-          const { data: existingRole } = await supabase
-            .from("user_roles")
-            .select("id")
-            .eq("user_id", profile.id)
-            .eq("role", validated.role)
-            .maybeSingle();
-
-          // Assign role if they don't have it
-          if (!existingRole) {
-            const { error: roleError } = await supabase
-              .from("user_roles")
+            // Add as chat member
+            const { error: memberError } = await supabase
+              .from("chat_members")
               .insert({
+                chat_id: chatId,
+                user_id: profile.id,
+              });
+
+            if (memberError) {
+              results.push({
+                email,
+                success: false,
+                error: memberError.message,
+              });
+              continue;
+            }
+
+            // Assign role if they don't have it
+            const { data: existingRole } = await supabase
+              .from("user_roles")
+              .select("id")
+              .eq("user_id", profile.id)
+              .eq("role", validated.role)
+              .maybeSingle();
+
+            if (!existingRole) {
+              await supabase.from("user_roles").insert({
                 user_id: profile.id,
                 role: validated.role,
               });
+            }
 
-            if (roleError) {
-              console.debug("[AddMembers] Role assign error", { email, roleError });
+            results.push({
+              email,
+              success: true,
+              name: profile.full_name || undefined,
+            });
+          } else {
+            // User doesn't exist - send invitation
+            const token = crypto.randomUUID();
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+            // Create invitation
+            const { error: inviteError } = await supabase
+              .from("chat_invitations")
+              .insert({
+                chat_id: chatId,
+                email,
+                role: validated.role,
+                invited_by: user!.id,
+                token,
+                expires_at: expiresAt.toISOString(),
+              });
+
+            if (inviteError) {
+              // Check if invitation already exists
+              if (inviteError.code === "23505") {
+                results.push({
+                  email,
+                  success: false,
+                  error: "Invitation already sent",
+                });
+              } else {
+                results.push({
+                  email,
+                  success: false,
+                  error: inviteError.message,
+                });
+              }
+              continue;
+            }
+
+            // Send invitation email
+            const invitationUrl = `${window.location.origin}/auth?invitation=${token}`;
+            
+            try {
+              await supabase.functions.invoke("send-chat-invitation", {
+                body: {
+                  email,
+                  chatName,
+                  inviterName,
+                  invitationUrl,
+                  role: validated.role,
+                },
+              });
+
+              results.push({
+                email,
+                success: true,
+                invited: true,
+              });
+            } catch (emailError) {
+              console.error("[AddMembers] Email send error", { email, emailError });
+              results.push({
+                email,
+                success: true,
+                invited: true,
+                error: "Invitation created but email failed to send",
+              });
             }
           }
-
-          console.debug("[AddMembers] Success", { email, userId: profile.id });
-          results.push({
-            email,
-            success: true,
-            name: profile.full_name || undefined,
-          });
         } catch (err) {
           console.debug("[AddMembers] Email validation error", { email, err });
           results.push({
@@ -171,12 +237,19 @@ export const AddMemberDialog = ({
       return results;
     },
     onSuccess: (results) => {
-      const successCount = results.filter((r) => r.success).length;
+      const addedCount = results.filter((r) => r.success && !r.invited).length;
+      const invitedCount = results.filter((r) => r.success && r.invited).length;
       const failCount = results.filter((r) => !r.success).length;
 
-      if (successCount > 0) {
+      if (addedCount > 0) {
         toast.success(
-          `Added ${successCount} member${successCount > 1 ? "s" : ""} to chat`
+          `Added ${addedCount} member${addedCount > 1 ? "s" : ""} to chat`
+        );
+      }
+
+      if (invitedCount > 0) {
+        toast.success(
+          `Sent ${invitedCount} invitation${invitedCount > 1 ? "s" : ""} via email`
         );
       }
 
@@ -185,7 +258,7 @@ export const AddMemberDialog = ({
           .filter((r) => !r.success)
           .map((r) => `${r.email} (${r.error})`)
           .join(", ");
-        toast.error(`Failed to add: ${failedEmails}`);
+        toast.error(`Failed: ${failedEmails}`);
       }
 
       queryClient.invalidateQueries({ queryKey: ["chat_members", chatId] });

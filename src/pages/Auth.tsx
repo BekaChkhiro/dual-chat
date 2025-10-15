@@ -1,13 +1,14 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Mail } from "lucide-react";
 import { z } from "zod";
 
 const signupSchema = z.object({
@@ -23,7 +24,49 @@ const loginSchema = z.object({
 
 const Auth = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const [invitationData, setInvitationData] = useState<{
+    email: string;
+    chatName: string;
+    role: string;
+  } | null>(null);
+
+  // Check for invitation token
+  useEffect(() => {
+    const token = searchParams.get("invitation");
+    if (token) {
+      // Fetch invitation details
+      supabase
+        .from("chat_invitations")
+        .select("email, role, chats(client_name), expires_at, accepted_at")
+        .eq("token", token)
+        .maybeSingle()
+        .then(({ data, error }) => {
+          if (error || !data) {
+            toast.error("Invalid or expired invitation");
+            return;
+          }
+
+          if (data.accepted_at) {
+            toast.info("This invitation has already been used");
+            return;
+          }
+
+          const expiresAt = new Date(data.expires_at);
+          if (expiresAt < new Date()) {
+            toast.error("This invitation has expired");
+            return;
+          }
+
+          setInvitationData({
+            email: data.email,
+            chatName: (data.chats as any)?.client_name || "a chat",
+            role: data.role,
+          });
+        });
+    }
+  }, [searchParams]);
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,9 +81,17 @@ const Auth = () => {
 
     try {
       const validated = signupSchema.parse(data);
+
+      // If invitation exists, validate email matches
+      if (invitationData && validated.email !== invitationData.email) {
+        toast.error(`This invitation is for ${invitationData.email}`);
+        setLoading(false);
+        return;
+      }
+
       const redirectUrl = `${window.location.origin}/`;
 
-      const { error } = await supabase.auth.signUp({
+      const { data: authData, error } = await supabase.auth.signUp({
         email: validated.email,
         password: validated.password,
         options: {
@@ -57,8 +108,42 @@ const Auth = () => {
         } else {
           toast.error(error.message);
         }
-      } else {
-        toast.success("Account created! Redirecting...");
+      } else if (authData.user) {
+        // If there's an invitation, process it
+        if (invitationData) {
+          const token = searchParams.get("invitation");
+          
+          // Get invitation details
+          const { data: invitation } = await supabase
+            .from("chat_invitations")
+            .select("*")
+            .eq("token", token!)
+            .single();
+
+          if (invitation) {
+            // Add user to chat
+            await supabase.from("chat_members").insert({
+              chat_id: invitation.chat_id,
+              user_id: authData.user.id,
+            });
+
+            // Assign role
+            await supabase.from("user_roles").insert({
+              user_id: authData.user.id,
+              role: invitation.role,
+            });
+
+            // Mark invitation as accepted
+            await supabase
+              .from("chat_invitations")
+              .update({ accepted_at: new Date().toISOString() })
+              .eq("token", token!);
+
+            toast.success(`Welcome! You've been added to ${invitationData.chatName}`);
+          }
+        } else {
+          toast.success("Account created! Redirecting...");
+        }
         navigate("/");
       }
     } catch (error) {
@@ -127,7 +212,18 @@ const Auth = () => {
         </CardHeader>
 
         <CardContent>
-          <Tabs defaultValue="login" className="w-full">
+          {invitationData && (
+            <Alert className="mb-4 border-primary/20 bg-primary/5">
+              <Mail className="h-4 w-4" />
+              <AlertDescription>
+                You've been invited to join <strong>{invitationData.chatName}</strong> as a{" "}
+                <strong>{invitationData.role === "team_member" ? "Team Member" : "Client"}</strong>.
+                Please sign up with <strong>{invitationData.email}</strong> to accept.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Tabs defaultValue={invitationData ? "signup" : "login"} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -185,6 +281,8 @@ const Auth = () => {
                     placeholder="you@example.com"
                     required
                     disabled={loading}
+                    defaultValue={invitationData?.email || ""}
+                    readOnly={!!invitationData}
                   />
                 </div>
                 <div className="space-y-2">
