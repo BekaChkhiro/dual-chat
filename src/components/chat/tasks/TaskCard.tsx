@@ -1,9 +1,20 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, User, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ka } from "date-fns/locale";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export type TaskStatus = "to_start" | "in_progress" | "completed" | "failed";
 
@@ -44,41 +55,53 @@ const statusLabels: Record<TaskStatus, string> = {
 };
 
 export const TaskCard = ({ task, onDelete, onStatusChange, onClick }: TaskCardProps) => {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    onDelete(task.id);
+    setDeleteDialogOpen(false);
+  };
 
   return (
-    <Card
-      className="hover:shadow-md transition-shadow cursor-pointer"
-      onClick={(e) => {
-        // Don't trigger if clicking on buttons
-        if (!(e.target as HTMLElement).closest('button')) {
-          onClick?.();
-        }
-      }}
-    >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1">
-            <h3 className="font-semibold">
-              {task.title}
-            </h3>
+    <>
+      <Card
+        className="hover:shadow-md transition-shadow cursor-pointer"
+        onClick={(e) => {
+          // Don't trigger if clicking on buttons
+          if (!(e.target as HTMLElement).closest('button')) {
+            onClick?.();
+          }
+        }}
+      >
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <h3 className="font-semibold">
+                {task.title}
+              </h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className={statusColors[task.status]}>
+                {statusLabels[task.status]}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={handleDeleteClick}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge className={statusColors[task.status]}>
-              {statusLabels[task.status]}
-            </Badge>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={() => onDelete(task.id)}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
+        </CardHeader>
 
-      <CardContent className="space-y-3">
+      <CardContent>
         {/* Meta Info */}
         <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
           {task.due_date && (
@@ -96,43 +119,28 @@ export const TaskCard = ({ task, onDelete, onStatusChange, onClick }: TaskCardPr
             </div>
           )}
         </div>
-
-        {/* Status Change Buttons */}
-        {task.status !== "completed" && task.status !== "failed" && (
-          <div className="flex gap-2">
-            {task.status === "to_start" && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onStatusChange(task.id, "in_progress")}
-                className="text-blue-600 border-blue-600 hover:bg-blue-50"
-              >
-                დაწყება
-              </Button>
-            )}
-            {task.status === "in_progress" && (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onStatusChange(task.id, "completed")}
-                  className="text-green-600 border-green-600 hover:bg-green-50"
-                >
-                  დასრულება
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onStatusChange(task.id, "failed")}
-                  className="text-red-600 border-red-600 hover:bg-red-50"
-                >
-                  ჩაშლა
-                </Button>
-              </>
-            )}
-          </div>
-        )}
       </CardContent>
     </Card>
+
+    <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>დარწმუნებული ხართ?</AlertDialogTitle>
+          <AlertDialogDescription>
+            ეს მოქმედება შეუქცევადია. ამოცანა "{task.title}" სამუდამოდ წაიშლება.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>გაუქმება</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDeleteConfirm}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            წაშლა
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 };
