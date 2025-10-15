@@ -1,3 +1,7 @@
+import { useState, useEffect, useMemo } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sheet,
   SheetContent,
@@ -6,7 +10,16 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Carousel,
   CarouselContent,
@@ -15,11 +28,12 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Calendar, User, Clock, Edit, Trash2, Paperclip, FileText } from "lucide-react";
+import { Calendar, User, Clock, Edit, X, Trash2, Paperclip, FileText, Save } from "lucide-react";
 import { format } from "date-fns";
 import { ka } from "date-fns/locale";
 import { TaskStatus } from "./TaskCard";
-import { TaskAttachment } from "./TaskFileUpload";
+import { TaskAttachment, TaskFileUpload } from "./TaskFileUpload";
+import { toast } from "sonner";
 
 interface Task {
   id: string;
@@ -30,6 +44,7 @@ interface Task {
   assignee_id: string | null;
   created_by: string;
   created_at: string;
+  chat_id: string;
   attachments?: TaskAttachment[];
   assignee?: {
     full_name: string | null;
@@ -45,7 +60,6 @@ interface TaskDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   task: Task | null;
-  onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
   isDeleting?: boolean;
@@ -55,18 +69,199 @@ export const TaskDetailDialog = ({
   open,
   onOpenChange,
   task,
-  onEdit,
   onDelete,
   onStatusChange,
   isDeleting,
 }: TaskDetailDialogProps) => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTitle, setEditedTitle] = useState("");
+  const [editedDescription, setEditedDescription] = useState("");
+  const [editedDueDate, setEditedDueDate] = useState("");
+  const [editedAssigneeId, setEditedAssigneeId] = useState("none");
+  const [editedAttachments, setEditedAttachments] = useState<TaskAttachment[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
+  // Initialize edited values when entering edit mode or task changes
+  useEffect(() => {
+    if (task && open) {
+      setEditedTitle(task.title);
+      setEditedDescription(task.description || "");
+      setEditedDueDate(task.due_date || "");
+      setEditedAssigneeId(task.assignee_id || "none");
+      setEditedAttachments(task.attachments || []);
+      setPendingFiles([]);
+    }
+  }, [task, open]);
+
+  // Reset edit mode when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setIsEditing(false);
+      setPendingFiles([]);
+    }
+  }, [open]);
+
+  // Fetch chat members for assignee dropdown
+  const { data: members = [] } = useQuery({
+    queryKey: ["chat_members", task?.chat_id],
+    queryFn: async () => {
+      if (!task) return [];
+
+      const { data: membersData, error: membersError } = await supabase
+        .from("chat_members")
+        .select("user_id")
+        .eq("chat_id", task.chat_id);
+
+      if (membersError) throw membersError;
+      if (!membersData || membersData.length === 0) return [];
+
+      const userIds = membersData.map((m) => m.user_id);
+
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", userIds);
+
+      if (profilesError) throw profilesError;
+      return profilesData || [];
+    },
+    enabled: open && !!task,
+  });
+
+  // Create blob URLs for pending file previews
+  const pendingFileAttachments = useMemo(() => {
+    return pendingFiles.map((file) => ({
+      name: file.name,
+      type: file.type,
+      url: file.type.startsWith('image/') ? URL.createObjectURL(file) : "",
+      size: file.size,
+    }));
+  }, [pendingFiles]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      pendingFileAttachments.forEach((attachment) => {
+        if (attachment.url) {
+          URL.revokeObjectURL(attachment.url);
+        }
+      });
+    };
+  }, [pendingFileAttachments]);
+
+  // Update task mutation
+  const updateTaskMutation = useMutation({
+    mutationFn: async () => {
+      if (!task || !user) return;
+
+      const uploadedAttachments: TaskAttachment[] = [...editedAttachments];
+
+      // Upload new files to Supabase storage
+      if (pendingFiles.length > 0) {
+        for (const file of pendingFiles) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${user.id}/${task.chat_id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('task-attachments')
+            .upload(fileName, file, {
+              cacheControl: '3600',
+              upsert: false,
+            });
+
+          if (uploadError) {
+            console.error('Upload error:', uploadError);
+            throw new Error(`Failed to upload ${file.name}`);
+          }
+
+          // Get signed URL (valid for 1 year)
+          const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+            .from('task-attachments')
+            .createSignedUrl(fileName, 31536000, {
+              download: false
+            });
+
+          if (signedUrlError) {
+            console.error('Signed URL error:', signedUrlError);
+            throw new Error(`Failed to create URL for ${file.name}`);
+          }
+
+          uploadedAttachments.push({
+            name: file.name,
+            type: file.type,
+            url: signedUrlData.signedUrl,
+            size: file.size,
+          });
+        }
+      }
+
+      const { error } = await supabase
+        .from("tasks")
+        .update({
+          title: editedTitle.trim(),
+          description: editedDescription.trim() || null,
+          due_date: editedDueDate || null,
+          assignee_id: editedAssigneeId === "none" || !editedAssigneeId ? null : editedAssigneeId,
+          attachments: uploadedAttachments,
+        })
+        .eq("id", task.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", task?.chat_id] });
+      toast.success("ამოცანა განახლდა");
+      setIsEditing(false);
+      setPendingFiles([]);
+    },
+    onError: (error) => {
+      toast.error("ამოცანის განახლება ვერ მოხერხდა");
+      console.error(error);
+    },
+  });
+
+  const handleSave = () => {
+    if (editedTitle.trim()) {
+      updateTaskMutation.mutate();
+    }
+  };
+
+  const handleCancel = () => {
+    if (task) {
+      setEditedTitle(task.title);
+      setEditedDescription(task.description || "");
+      setEditedDueDate(task.due_date || "");
+      setEditedAssigneeId(task.assignee_id || "none");
+      setEditedAttachments(task.attachments || []);
+      setPendingFiles([]);
+    }
+    setIsEditing(false);
+  };
+
   if (!task) return null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="sm:max-w-[600px] w-full overflow-hidden flex flex-col">
         <SheetHeader>
-          <SheetTitle className="text-xl">{task.title}</SheetTitle>
+          {isEditing ? (
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">სათაური *</Label>
+              <Input
+                id="edit-title"
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                placeholder="ამოცანის სათაური"
+                maxLength={200}
+                className="text-xl font-semibold"
+              />
+            </div>
+          ) : (
+            <SheetTitle className="text-xl">{task.title}</SheetTitle>
+          )}
         </SheetHeader>
 
         <ScrollArea className="flex-1 -mx-6 px-6 pb-4">
@@ -142,24 +337,56 @@ export const TaskDetailDialog = ({
           </div>
 
           {/* Description */}
-          {task.description && (
-            <div>
-              <h4 className="font-semibold mb-2 text-sm text-muted-foreground">
-                აღწერა
-              </h4>
-              <p className="text-sm whitespace-pre-wrap bg-muted/30 rounded-lg p-4">
-                {task.description}
-              </p>
+          {isEditing ? (
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">აღწერა</Label>
+              <Textarea
+                id="edit-description"
+                value={editedDescription}
+                onChange={(e) => setEditedDescription(e.target.value)}
+                placeholder="დეტალური აღწერა..."
+                className="min-h-[100px]"
+                maxLength={2000}
+              />
             </div>
+          ) : (
+            task.description && (
+              <div>
+                <h4 className="font-semibold mb-2 text-sm text-muted-foreground">
+                  აღწერა
+                </h4>
+                <p className="text-sm whitespace-pre-wrap bg-muted/30 rounded-lg p-4">
+                  {task.description}
+                </p>
+              </div>
+            )
           )}
 
           {/* Attachments */}
-          {task.attachments && task.attachments.length > 0 && (() => {
-            const images = task.attachments.filter(att => att.type.startsWith('image/'));
-            const otherFiles = task.attachments.filter(att => !att.type.startsWith('image/'));
+          {isEditing ? (
+            <div className="space-y-2">
+              <Label>ფაილები</Label>
+              <TaskFileUpload
+                attachments={[...editedAttachments, ...pendingFileAttachments]}
+                onAdd={(files) => setPendingFiles([...pendingFiles, ...files])}
+                onRemove={(index) => {
+                  if (index < editedAttachments.length) {
+                    setEditedAttachments(editedAttachments.filter((_, i) => i !== index));
+                  } else {
+                    const pendingIndex = index - editedAttachments.length;
+                    setPendingFiles(pendingFiles.filter((_, i) => i !== pendingIndex));
+                  }
+                }}
+                disabled={updateTaskMutation.isPending}
+              />
+            </div>
+          ) : (
+            task.attachments && task.attachments.length > 0 && (() => {
+              const images = task.attachments.filter(att => att.type.startsWith('image/'));
+              const otherFiles = task.attachments.filter(att => !att.type.startsWith('image/'));
 
-            return (
-              <div className="space-y-4">
+              return (
+                <div className="space-y-4">
                 {/* Image Gallery */}
                 {images.length > 0 && (
                   <div>
@@ -239,89 +466,144 @@ export const TaskDetailDialog = ({
                 )}
               </div>
             );
-          })()}
+          })())}
 
-          {/* Meta Information */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Due Date */}
-            {task.due_date && (
+          {/* Due Date and Assignee - Edit or View */}
+          {isEditing ? (
+            <div className="grid grid-cols-1 gap-4">
+              {/* Due Date Input */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-due-date">ვადა</Label>
+                <Input
+                  id="edit-due-date"
+                  type="date"
+                  value={editedDueDate}
+                  onChange={(e) => setEditedDueDate(e.target.value)}
+                />
+              </div>
+
+              {/* Assignee Select */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-assignee">შემსრულებელი</Label>
+                <Select value={editedAssigneeId} onValueChange={setEditedAssigneeId}>
+                  <SelectTrigger id="edit-assignee">
+                    <SelectValue placeholder="აირჩიეთ შემსრულებელი" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">არავინ</SelectItem>
+                    {members.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.full_name || member.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              {/* Due Date */}
+              {task.due_date && (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="w-4 h-4" />
+                    <span className="font-medium">ვადა</span>
+                  </div>
+                  <p className="text-sm pl-6">
+                    {format(new Date(task.due_date), "d MMMM, yyyy", {
+                      locale: ka,
+                    })}
+                  </p>
+                </div>
+              )}
+
+              {/* Assignee */}
+              {task.assignee && (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <User className="w-4 h-4" />
+                    <span className="font-medium">შემსრულებელი</span>
+                  </div>
+                  <p className="text-sm pl-6">
+                    {task.assignee.full_name || task.assignee.email}
+                  </p>
+                </div>
+              )}
+
+              {/* Created Date */}
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
-                  <span className="font-medium">ვადა</span>
+                  <Clock className="w-4 h-4" />
+                  <span className="font-medium">შეიქმნა</span>
                 </div>
                 <p className="text-sm pl-6">
-                  {format(new Date(task.due_date), "d MMMM, yyyy", {
+                  {format(new Date(task.created_at), "d MMMM, yyyy HH:mm", {
                     locale: ka,
                   })}
                 </p>
               </div>
-            )}
 
-            {/* Assignee */}
-            {task.assignee && (
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <User className="w-4 h-4" />
-                  <span className="font-medium">შემსრულებელი</span>
+              {/* Creator */}
+              {task.creator && (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <User className="w-4 h-4" />
+                    <span className="font-medium">შემქმნელი</span>
+                  </div>
+                  <p className="text-sm pl-6">
+                    {task.creator.full_name || task.creator.email}
+                  </p>
                 </div>
-                <p className="text-sm pl-6">
-                  {task.assignee.full_name || task.assignee.email}
-                </p>
-              </div>
-            )}
-
-            {/* Created Date */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="w-4 h-4" />
-                <span className="font-medium">შეიქმნა</span>
-              </div>
-              <p className="text-sm pl-6">
-                {format(new Date(task.created_at), "d MMMM, yyyy HH:mm", {
-                  locale: ka,
-                })}
-              </p>
+              )}
             </div>
-
-            {/* Creator */}
-            {task.creator && (
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <User className="w-4 h-4" />
-                  <span className="font-medium">შემქმნელი</span>
-                </div>
-                <p className="text-sm pl-6">
-                  {task.creator.full_name || task.creator.email}
-                </p>
-              </div>
-            )}
-          </div>
+          )}
           </div>
         </ScrollArea>
 
         {/* Actions - Fixed Footer */}
         <div className="border-t bg-background p-4 -mx-6 mt-auto">
           <div className="flex gap-2 px-6">
-            <Button
-              onClick={() => onEdit(task)}
-              variant="outline"
-              className="flex-1"
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              რედაქტირება
-            </Button>
-            <Button
-              onClick={() => {
-                onDelete(task.id);
-              }}
-              variant="destructive"
-              className="flex-1"
-              disabled={isDeleting}
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {isDeleting ? "წაშლა..." : "წაშლა"}
-            </Button>
+            {isEditing ? (
+              <>
+                <Button
+                  onClick={handleCancel}
+                  variant="outline"
+                  className="flex-1"
+                  disabled={updateTaskMutation.isPending}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  გაუქმება
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  className="flex-1"
+                  disabled={!editedTitle.trim() || updateTaskMutation.isPending}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {updateTaskMutation.isPending ? "შენახვა..." : "შენახვა"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={() => setIsEditing(true)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  რედაქტირება
+                </Button>
+                <Button
+                  onClick={() => onDelete(task.id)}
+                  variant="destructive"
+                  className="flex-1"
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {isDeleting ? "წაშლა..." : "წაშლა"}
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </SheetContent>

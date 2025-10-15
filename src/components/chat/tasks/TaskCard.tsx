@@ -1,13 +1,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, MoreVertical, Edit, Trash2 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Calendar, User, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ka } from "date-fns/locale";
 
@@ -30,7 +24,6 @@ interface Task {
 
 interface TaskCardProps {
   task: Task;
-  onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
   onClick?: () => void;
@@ -50,13 +43,13 @@ const statusLabels: Record<TaskStatus, string> = {
   failed: "ჩაიშალა",
 };
 
-export const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onClick }: TaskCardProps) => {
+export const TaskCard = ({ task, onDelete, onStatusChange, onClick }: TaskCardProps) => {
 
   return (
     <Card
       className="hover:shadow-md transition-shadow cursor-pointer"
       onClick={(e) => {
-        // Don't trigger if clicking on buttons or dropdown
+        // Don't trigger if clicking on buttons
         if (!(e.target as HTMLElement).closest('button')) {
           onClick?.();
         }
@@ -73,26 +66,14 @@ export const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onClick }: Ta
             <Badge className={statusColors[task.status]}>
               {statusLabels[task.status]}
             </Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit(task)}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  რედაქტირება
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => onDelete(task.id)}
-                  className="text-destructive"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  წაშლა
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => onDelete(task.id)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </CardHeader>

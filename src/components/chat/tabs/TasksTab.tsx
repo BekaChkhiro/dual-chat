@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,11 +23,9 @@ interface TasksTabProps {
 export const TasksTab = ({ chatId }: TasksTabProps) => {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editTask, setEditTask] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [taskDetailOpen, setTaskDetailOpen] = useState(false);
-  const [pendingEditTask, setPendingEditTask] = useState<any>(null);
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["tasks", chatId],
@@ -117,36 +115,14 @@ export const TasksTab = ({ chatId }: TasksTabProps) => {
     },
   });
 
-  const handleEdit = (task: any) => {
-    setPendingEditTask(task);
-    setTaskDetailOpen(false);
+  const handleDialogClose = (open: boolean) => {
+    setDialogOpen(open);
   };
-
-  // Watch for preview closing and pending edit
-  useEffect(() => {
-    if (!taskDetailOpen && pendingEditTask) {
-      // Wait for sheet animation to complete
-      const timer = setTimeout(() => {
-        setEditTask(pendingEditTask);
-        setDialogOpen(true);
-        setPendingEditTask(null);
-      }, 350);
-
-      return () => clearTimeout(timer);
-    }
-  }, [taskDetailOpen, pendingEditTask]);
 
   const handleDetailOpenChange = (open: boolean) => {
     setTaskDetailOpen(open);
     if (!open) {
       setSelectedTask(null);
-    }
-  };
-
-  const handleDialogClose = (open: boolean) => {
-    setDialogOpen(open);
-    if (!open) {
-      setEditTask(null);
     }
   };
 
@@ -214,7 +190,6 @@ export const TasksTab = ({ chatId }: TasksTabProps) => {
               <TaskCard
                 key={task.id}
                 task={task}
-                onEdit={handleEdit}
                 onDelete={deleteTaskMutation.mutate}
                 onStatusChange={(taskId, status) =>
                   updateTaskStatusMutation.mutate({ taskId, status })
@@ -246,12 +221,11 @@ export const TasksTab = ({ chatId }: TasksTabProps) => {
         )}
       </ScrollArea>
 
-      {/* Create/Edit Dialog */}
+      {/* Create Dialog */}
       <CreateTaskDialog
         open={dialogOpen}
         onOpenChange={handleDialogClose}
         chatId={chatId}
-        editTask={editTask}
       />
 
       {/* Task Detail Dialog */}
@@ -259,7 +233,6 @@ export const TasksTab = ({ chatId }: TasksTabProps) => {
         open={taskDetailOpen}
         onOpenChange={handleDetailOpenChange}
         task={selectedTask}
-        onEdit={handleEdit}
         onDelete={deleteTaskMutation.mutate}
         onStatusChange={(taskId, status) =>
           updateTaskStatusMutation.mutate({ taskId, status })
