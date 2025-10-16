@@ -96,15 +96,34 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Mobile: show either list or chat fullscreen */}
+      <div className="flex-1 min-h-0 flex md:hidden overflow-hidden">
+        {selectedChatId ? (
+          <div className="flex flex-col flex-1 min-w-0 min-h-0">
+            <ChatWindow chatId={selectedChatId} onBack={() => setSelectedChatId(null)} />
+          </div>
+        ) : (
+          <div className="flex flex-col flex-1 min-w-0 min-h-0">
+            <ChatList
+              selectedChatId={selectedChatId}
+              onSelectChat={setSelectedChatId}
+              onCreateChat={() => setCreateDialogOpen(true)}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Desktop: two-pane layout */}
+      <div className="hidden md:flex flex-1 min-h-0 overflow-hidden">
         <ChatList
           selectedChatId={selectedChatId}
           onSelectChat={setSelectedChatId}
           onCreateChat={() => setCreateDialogOpen(true)}
         />
-
         {selectedChatId ? (
-          <ChatWindow chatId={selectedChatId} />
+          <div className="flex flex-col flex-1 min-w-0 min-h-0">
+            <ChatWindow chatId={selectedChatId} />
+          </div>
         ) : (
           <div className="flex-1 flex items-center justify-center bg-chat-bg">
             <div className="text-center space-y-4">
@@ -130,8 +149,8 @@ const Index = () => {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
       />
-      {/* Fixed bottom-left logout button */}
-      <div className="fixed bottom-4 left-4 z-50">
+      {/* Fixed bottom-left logout button (desktop only) */}
+      <div className="hidden md:fixed md:bottom-4 md:left-4 z-50">
         <Button variant="outline" size="sm" onClick={handleLogout}>
           <LogOut className="w-4 h-4 mr-2" />
           გასვლა

@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -30,6 +31,7 @@ interface ChatListProps {
 
 export const ChatList = ({ selectedChatId, onSelectChat, onCreateChat }: ChatListProps) => {
   const { currentOrganization } = useOrganization();
+  const queryClient = useQueryClient();
 
   const { data: chats, isLoading } = useQuery({
     queryKey: ["chats", currentOrganization?.id],
@@ -82,16 +84,34 @@ export const ChatList = ({ selectedChatId, onSelectChat, onCreateChat }: ChatLis
     },
   });
 
+  // Realtime: refresh chat list when messages change
+  useEffect(() => {
+    const channel = supabase
+      .channel('chatlist:messages')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'messages' },
+        () => {
+          queryClient.refetchQueries({ queryKey: ['chats', currentOrganization?.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, currentOrganization?.id]);
+
   if (isLoading) {
     return (
-      <div className="w-[400px] border-r bg-sidebar-bg flex items-center justify-center">
+      <div className="w-full h-full md:w-[360px] lg:w-[400px] md:border-r bg-sidebar-bg flex items-center justify-center">
         <p className="text-muted-foreground">ჩატების ჩატვირთვა...</p>
       </div>
     );
   }
 
   return (
-    <div className="w-[400px] border-r bg-sidebar-bg flex flex-col bg-white">
+    <div className="w-full h-full md:w-[360px] lg:w-[400px] md:border-r bg-sidebar-bg flex flex-col bg-white">
       <div className="p-4 border-b space-y-3">
         <div className="flex items-center gap-2">
           <MessageSquare className="w-5 h-5 text-primary" />

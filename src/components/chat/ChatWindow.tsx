@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, ArrowLeft } from "lucide-react";
 import { ModeToggle } from "./ModeToggle";
 import { ChatDetailsSheet } from "./ChatDetailsSheet";
 import { StaffTabs } from "./StaffTabs";
@@ -36,9 +36,10 @@ interface Message {
 
 interface ChatWindowProps {
   chatId: string;
+  onBack?: () => void;
 }
 
-export const ChatWindow = ({ chatId }: ChatWindowProps) => {
+export const ChatWindow = ({ chatId, onBack }: ChatWindowProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isStaffMode, setIsStaffMode] = useState(false);
@@ -144,20 +145,43 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
       .channel(`messages:${chatId}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `chat_id=eq.${chatId}`,
-        },
+        { event: "INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
         () => {
-          queryClient.invalidateQueries({ queryKey: ["messages", chatId] });
+          queryClient.refetchQueries({ queryKey: ["messages", chatId] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
+        () => {
+          queryClient.refetchQueries({ queryKey: ["messages", chatId] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
+        () => {
+          queryClient.refetchQueries({ queryKey: ["messages", chatId] });
         }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
+    };
+  }, [chatId, queryClient]);
+
+  // Realtime broadcast (works even if DB publication isn't enabled)
+  useEffect(() => {
+    const bcast = supabase
+      .channel(`chat:broadcast:${chatId}`, { config: { broadcast: { self: false } } })
+      .on('broadcast', { event: 'new_message' }, () => {
+        queryClient.refetchQueries({ queryKey: ["messages", chatId] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(bcast);
     };
   }, [chatId, queryClient]);
 
@@ -175,13 +199,18 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
   return (
     <div className={`flex-1 min-h-0 flex flex-col ${showingStaffTabs ? 'staff-mode' : 'bg-chat-bg'}`}>
       {/* Header */}
-      <div className="border-b bg-card p-4">
-        <div className="flex items-center justify-between">
-          <div>
+      <div className="border-b bg-card p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            {onBack && (
+              <Button variant="ghost" size="icon" className="md:hidden" onClick={onBack}>
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            )}
             <h2 className="font-semibold text-lg">{chat?.client_name}</h2>
             <p className="text-sm text-muted-foreground">{chat?.company_name}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Only show ModeToggle for staff */}
             {isStaff && <ModeToggle isStaffMode={isStaffMode} onToggle={setIsStaffMode} />}
             <Button
@@ -195,21 +224,23 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
         </div>
       </div>
 
-      {/* Content - Show tabs in staff mode, messages in client mode */}
-      {isStaff && isStaffMode ? (
-        <StaffTabs chatId={chatId}>
-          {{
-            messages: <MessagesTab chatId={chatId} messages={messages} isStaffMode={isStaffMode} />,
-            about: <AboutProjectTab chatId={chatId} />,
-            tasks: <TasksTab chatId={chatId} />,
-            kanban: <KanbanBoard chatId={chatId} />,
-            calendar: <CalendarView chatId={chatId} />,
-            files: <FilesTab chatId={chatId} />,
-          }}
-        </StaffTabs>
-      ) : (
-        <MessagesTab chatId={chatId} messages={messages} isStaffMode={isStaffMode} />
-      )}
+      {/* Content area fills remaining height */}
+      <div className="flex-1 min-h-0 flex flex-col">
+        {isStaff && isStaffMode ? (
+          <StaffTabs chatId={chatId}>
+            {{
+              messages: <MessagesTab chatId={chatId} messages={messages} isStaffMode={isStaffMode} />,
+              about: <AboutProjectTab chatId={chatId} />,
+              tasks: <TasksTab chatId={chatId} />,
+              kanban: <KanbanBoard chatId={chatId} />,
+              calendar: <CalendarView chatId={chatId} />,
+              files: <FilesTab chatId={chatId} />,
+            }}
+          </StaffTabs>
+        ) : (
+          <MessagesTab chatId={chatId} messages={messages} isStaffMode={isStaffMode} />
+        )}
+      </div>
 
       <ChatDetailsSheet
         open={detailsOpen}

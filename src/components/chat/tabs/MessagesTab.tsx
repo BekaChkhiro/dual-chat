@@ -39,6 +39,7 @@ export const MessagesTab = ({ chatId, messages, isStaffMode }: MessagesTabProps)
   const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -46,6 +47,18 @@ export const MessagesTab = ({ chatId, messages, isStaffMode }: MessagesTabProps)
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+
+  // Setup broadcast channel for this chat (to notify other clients)
+  useEffect(() => {
+    const ch = supabase
+      .channel(`chat:broadcast:${chatId}`, { config: { broadcast: { self: true } } })
+      .subscribe();
+    channelRef.current = ch;
+    return () => {
+      supabase.removeChannel(ch);
+      channelRef.current = null;
+    };
+  }, [chatId]);
 
   const editMessageMutation = useMutation({
     mutationFn: async ({ messageId, content }: { messageId: string; content: string }) => {
@@ -143,6 +156,10 @@ export const MessagesTab = ({ chatId, messages, isStaffMode }: MessagesTabProps)
       setMessage("");
       setAttachments([]);
       queryClient.invalidateQueries({ queryKey: ["messages", chatId] });
+      // Notify other clients via realtime broadcast
+      try {
+        channelRef.current?.send({ type: 'broadcast', event: 'new_message', payload: { chatId } });
+      } catch {}
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "Failed to send message");
@@ -187,7 +204,7 @@ export const MessagesTab = ({ chatId, messages, isStaffMode }: MessagesTabProps)
   return (
     <>
       {/* Messages */}
-      <ScrollArea className="flex-1 min-h-0 p-4">
+      <ScrollArea className="flex-1 min-h-0 p-3 sm:p-4">
         {filteredMessages && filteredMessages.length > 0 ? (
           <div className="space-y-4">
             {filteredMessages.map((msg) => (
@@ -220,7 +237,7 @@ export const MessagesTab = ({ chatId, messages, isStaffMode }: MessagesTabProps)
       </ScrollArea>
 
       {/* Input */}
-      <div className="border-t bg-card p-4">
+      <div className={`border-t bg-card p-3 sm:p-4 md:pb-4 ${!isStaffMode ? 'pb-[calc(env(safe-area-inset-bottom)+1.5rem)]' : ''}`}>
         {/* Attachment Preview */}
         <AttachmentPreviewList
           attachments={attachments}
