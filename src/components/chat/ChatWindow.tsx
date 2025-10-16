@@ -163,14 +163,16 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-chat-bg">
+      <div className={`flex-1 flex items-center justify-center ${isStaffMode ? 'staff-mode bg-white' : 'bg-chat-bg'}`}>
         <p className="text-muted-foreground">შეტყობინებების ჩატვირთვა...</p>
       </div>
     );
   }
 
+  const showingStaffTabs = isStaff && isStaffMode;
+
   return (
-    <div className="flex-1 flex flex-col bg-chat-bg">
+    <div className={`flex-1 flex flex-col ${showingStaffTabs ? 'staff-mode' : 'bg-chat-bg'}`}>
       {/* Header */}
       <div className="border-b bg-card p-4">
         <div className="flex items-center justify-between">

@@ -30,7 +30,7 @@ interface KanbanColumnProps {
 
 const statusColors: Record<TaskStatus, string> = {
   to_start: "bg-gray-500",
-  in_progress: "bg-blue-500",
+  in_progress: "bg-primary",
   completed: "bg-green-500",
   failed: "bg-red-500",
 };

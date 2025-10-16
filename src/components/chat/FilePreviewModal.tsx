@@ -74,7 +74,7 @@ export const FilePreviewModal = ({ attachment, open, onOpenChange }: FilePreview
               <div className="text-center max-w-md mx-auto p-8">
                 <div className="mb-6">
                   {isWord && (
-                    <FileText className="w-20 h-20 mx-auto text-blue-500 mb-4" />
+                    <FileText className="w-20 h-20 mx-auto text-primary mb-4" />
                   )}
                   {isExcel && (
                     <FileText className="w-20 h-20 mx-auto text-green-500 mb-4" />

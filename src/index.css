@@ -49,7 +49,8 @@ All colors MUST be HSL.
     --radius: 0.75rem;
     
     /* Chat specific */
-    --chat-bg: 220 17% 97%;
+    /* Client chat background (#e7f0fe => hsl(217 92% 95%)) */
+    --chat-bg: 217 92% 95%;
     --message-sent: 217 91% 60%;
     --message-received: 0 0% 100%;
     --sidebar-bg: 0 0% 100%;
@@ -131,5 +132,16 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* When staff mode is active, remap primary accents to staff palette */
+  .staff-mode {
+    --primary: var(--staff);
+    --primary-foreground: var(--staff-foreground);
+    --primary-light: var(--staff-light);
+    --primary-hover: var(--staff-hover);
+    --accent: var(--staff-light);
+    --accent-foreground: var(--staff);
+    --ring: var(--staff);
   }
 }

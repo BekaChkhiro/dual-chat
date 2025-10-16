@@ -297,9 +297,9 @@ export const TaskDetailDialog = ({
                 />
                 <Label
                   htmlFor="in_progress"
-                  className="flex items-center justify-center gap-2 rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-500/10 cursor-pointer transition-all"
+                  className="flex items-center justify-center gap-2 rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 cursor-pointer transition-all"
                 >
-                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <div className="w-3 h-3 rounded-full bg-primary" />
                   <span className="font-medium text-sm">პროცესში</span>
                 </Label>
               </div>
