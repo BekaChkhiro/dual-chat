@@ -323,11 +323,11 @@ export const AboutProjectTab = ({ chatId }: AboutProjectTabProps) => {
   }
 
 return (
-  <div className="flex-1 min-h-0 flex flex-col">
-    <ScrollArea className="flex-1 p-6">
+  <div className="flex-1 min-h-0 flex flex-col overflow-x-hidden">
+    <ScrollArea className="flex-1 p-3 sm:p-4 md:p-6 overflow-x-hidden">
         <div className="max-w-full space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between sticky top-0 z-10 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 w-full px-3 sm:static sm:bg-transparent sm:backdrop-blur-0 sm:px-0 py-2 sm:py-0">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
                 <FileText className="w-6 h-6 text-primary" />
@@ -340,7 +340,7 @@ return (
               </div>
             </div>
             {!isEditing && (
-              <Button onClick={() => setIsEditing(true)} variant="outline">
+              <Button onClick={() => setIsEditing(true)} variant="outline" className="hidden md:inline-flex">
                 <Edit className="w-4 h-4 mr-2" />
                 რედაქტირება
               </Button>
@@ -349,12 +349,14 @@ return (
           
           {/* Main Content Tabs */}
           <Tabs defaultValue="docs" className="w-full">
-            <TabsList className="mb-4 w-full justify-start rounded-none border-b bg-transparent p-0">
-              <TabsTrigger value="docs" className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground">დოკუმენტები</TabsTrigger>
-              <TabsTrigger value="description" className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground">პროექტის აღწერა</TabsTrigger>
-              <TabsTrigger value="notes" className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground">შენიშვნები</TabsTrigger>
-              <TabsTrigger value="info" className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground">პროექტის ინფორმაცია</TabsTrigger>
-            </TabsList>
+            <div className="mb-4 w-full overflow-x-auto overflow-y-hidden no-scrollbar md:overflow-x-visible">
+              <TabsList className="min-w-max inline-flex justify-start rounded-none border-b bg-transparent p-0 whitespace-nowrap">
+                <TabsTrigger value="docs" className="rounded-none border-b-2 border-transparent bg-transparent px-3 md:px-4 pb-2 md:pb-3 pt-2 text-sm md:text-base font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground shrink-0">დოკუმენტები</TabsTrigger>
+                <TabsTrigger value="description" className="rounded-none border-b-2 border-transparent bg-transparent px-3 md:px-4 pb-2 md:pb-3 pt-2 text-sm md:text-base font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground shrink-0">პროექტის აღწერა</TabsTrigger>
+                <TabsTrigger value="notes" className="rounded-none border-b-2 border-transparent bg-transparent px-3 md:px-4 pb-2 md:pb-3 pt-2 text-sm md:text-base font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground shrink-0">შენიშვნები</TabsTrigger>
+                <TabsTrigger value="info" className="rounded-none border-b-2 border-transparent bg-transparent px-3 md:px-4 pb-2 md:pb-3 pt-2 text-sm md:text-base font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground shrink-0">პროექტის ინფორმაცია</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="docs" className="m-0 data-[state=inactive]:hidden">
               <Card>
@@ -402,16 +404,16 @@ return (
                       {selectedDocId ? (
                         <div className="space-y-3">
                           {!docEditMode ? (
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between sticky top-0 z-10 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 md:static md:bg-transparent md:backdrop-blur-0 md:top-auto md:z-auto border-b md:border-0 pb-2 md:pb-0">
                               <h3 className="font-semibold text-lg">{docTitle || 'Untitled'}</h3>
                               <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm" onClick={() => setDocEditMode(true)}>
+                                <Button variant="outline" size="sm" onClick={() => setDocEditMode(true)} className="hidden md:inline-flex">
                                   <Edit className="w-4 h-4 mr-2" /> რედაქტირება
                                 </Button>
                               </div>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 sticky top-0 z-10 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 md:static md:bg-transparent md:backdrop-blur-0 md:top-auto md:z-auto border-b md:border-0 py-2 md:py-0">
                               <Input value={docTitle} onChange={(e) => setDocTitle(e.target.value)} placeholder="გვერდის სათაური" />
                             </div>
                           )}
@@ -857,7 +859,7 @@ const NoteItem = ({
           )}
         </div>
         <div className="flex flex-col items-end gap-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing((v) => !v)} title="რედაქტირება">
+          <Button variant="ghost" size="icon" className="h-7 w-7 hidden md:inline-flex" onClick={() => setEditing((v) => !v)} title="რედაქტირება">
             <Edit className="w-4 h-4" />
           </Button>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onTogglePin} title={note.pinned ? 'Unpin' : 'Pin'}>

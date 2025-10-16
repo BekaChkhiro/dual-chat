@@ -102,6 +102,19 @@ export const ChatList = ({ selectedChatId, onSelectChat, onCreateChat }: ChatLis
     };
   }, [queryClient, currentOrganization?.id]);
 
+  // Fallback broadcast (when DB publication isn't enabled)
+  useEffect(() => {
+    const bcast = supabase
+      .channel('chat:broadcast:list', { config: { broadcast: { self: false } } })
+      .on('broadcast', { event: '*' }, () => {
+        queryClient.refetchQueries({ queryKey: ['chats', currentOrganization?.id] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(bcast);
+    };
+  }, [queryClient, currentOrganization?.id]);
+
   if (isLoading) {
     return (
       <div className="w-full h-full md:w-[360px] lg:w-[400px] md:border-r bg-sidebar-bg flex items-center justify-center">

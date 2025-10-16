@@ -40,6 +40,7 @@ export const MessagesTab = ({ chatId, messages, isStaffMode }: MessagesTabProps)
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const listChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -48,17 +49,31 @@ export const MessagesTab = ({ chatId, messages, isStaffMode }: MessagesTabProps)
     }
   }, [messages]);
 
-  // Setup broadcast channel for this chat (to notify other clients)
+  // Setup broadcast channels (chat-specific and list-wide)
   useEffect(() => {
     const ch = supabase
       .channel(`chat:broadcast:${chatId}`, { config: { broadcast: { self: true } } })
+      .on('broadcast', { event: '*' }, () => {
+        // Refetch messages when any message event fires (new/update/delete)
+        queryClient.refetchQueries({ queryKey: ["messages", chatId] });
+      })
       .subscribe();
     channelRef.current = ch;
+    const listCh = supabase
+      .channel('chat:broadcast:list', { config: { broadcast: { self: true } } })
+      .on('broadcast', { event: '*' }, () => {
+        // Refresh chat list previews
+        queryClient.refetchQueries({ queryKey: ["chats"] });
+      })
+      .subscribe();
+    listChannelRef.current = listCh;
     return () => {
       supabase.removeChannel(ch);
       channelRef.current = null;
+      supabase.removeChannel(listCh);
+      listChannelRef.current = null;
     };
-  }, [chatId]);
+  }, [chatId, queryClient]);
 
   const editMessageMutation = useMutation({
     mutationFn: async ({ messageId, content }: { messageId: string; content: string }) => {
@@ -72,6 +87,10 @@ export const MessagesTab = ({ chatId, messages, isStaffMode }: MessagesTabProps)
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["messages", chatId] });
       toast.success("მესიჯი შეიცვალა");
+      try {
+        channelRef.current?.send({ type: 'broadcast', event: 'update_message', payload: { chatId } });
+        listChannelRef.current?.send({ type: 'broadcast', event: 'update_message', payload: { chatId } });
+      } catch {}
     },
     onError: (error) => {
       toast.error("მესიჯის რედაქტირება ვერ მოხერხდა");
@@ -91,6 +110,10 @@ export const MessagesTab = ({ chatId, messages, isStaffMode }: MessagesTabProps)
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["messages", chatId] });
       toast.success("მესიჯი წაიშალა");
+      try {
+        channelRef.current?.send({ type: 'broadcast', event: 'delete_message', payload: { chatId } });
+        listChannelRef.current?.send({ type: 'broadcast', event: 'delete_message', payload: { chatId } });
+      } catch {}
     },
     onError: (error) => {
       toast.error("მესიჯის წაშლა ვერ მოხერხდა");
@@ -159,6 +182,7 @@ export const MessagesTab = ({ chatId, messages, isStaffMode }: MessagesTabProps)
       // Notify other clients via realtime broadcast
       try {
         channelRef.current?.send({ type: 'broadcast', event: 'new_message', payload: { chatId } });
+        listChannelRef.current?.send({ type: 'broadcast', event: 'new_message', payload: { chatId } });
       } catch {}
     },
     onError: (error) => {

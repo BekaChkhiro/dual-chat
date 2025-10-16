@@ -92,28 +92,30 @@ export const ChatDetailsSheet = ({ open, onOpenChange, chatId, isStaffMode, onTo
           </div>
         </SheetHeader>
 
-        <Tabs defaultValue={isStaff ? "members" : "media"} className="mt-6">
-          <TabsList className={`grid w-full ${isStaff ? 'grid-cols-4' : 'grid-cols-3'}`}>
+        <Tabs defaultValue={isStaff ? "members" : "media"} className="mt-6 overflow-x-hidden">
+          <div className="w-full overflow-x-auto overflow-y-hidden no-scrollbar md:overflow-visible">
+            <TabsList className={`min-w-max inline-flex w-auto justify-start whitespace-nowrap md:grid md:w-full md:whitespace-normal ${isStaff ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
             {/* Only show Members tab for staff */}
             {isStaff && (
-              <TabsTrigger value="members" className="gap-2">
+              <TabsTrigger value="members" className="gap-2 shrink-0">
                 <Users className="w-4 h-4" />
                 წევრები
               </TabsTrigger>
             )}
-            <TabsTrigger value="media" className="gap-2">
+            <TabsTrigger value="media" className="gap-2 shrink-0">
               <Image className="w-4 h-4" />
               მედია {media.length > 0 && `(${media.length})`}
             </TabsTrigger>
-            <TabsTrigger value="files" className="gap-2">
+            <TabsTrigger value="files" className="gap-2 shrink-0">
               <FileText className="w-4 h-4" />
               ფაილები {files.length > 0 && `(${files.length})`}
             </TabsTrigger>
-            <TabsTrigger value="links" className="gap-2">
+            <TabsTrigger value="links" className="gap-2 shrink-0">
               <Link2 className="w-4 h-4" />
               ლინკები {links.length > 0 && `(${links.length})`}
             </TabsTrigger>
-          </TabsList>
+            </TabsList>
+          </div>
 
           {/* Only show Members content for staff */}
           {isStaff && (

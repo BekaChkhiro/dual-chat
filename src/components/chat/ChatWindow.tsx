@@ -68,13 +68,14 @@ export const ChatWindow = ({ chatId, onBack }: ChatWindowProps) => {
     (currentUserRoles.includes("admin") || currentUserRoles.includes("team_member"));
 
   const { data: messages, isLoading } = useQuery({
-    queryKey: ["messages", chatId],
+    queryKey: ["messages", chatId, isStaffMode ? 'staff' : 'client'],
     queryFn: async () => {
       // Fetch messages
       const { data: messagesData, error: messagesError } = await supabase
         .from("messages")
         .select("*")
         .eq("chat_id", chatId)
+        .eq("is_staff_only", isStaffMode)
         .order("created_at", { ascending: true });
 
       if (messagesError) throw messagesError;
@@ -147,21 +148,21 @@ export const ChatWindow = ({ chatId, onBack }: ChatWindowProps) => {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
         () => {
-          queryClient.refetchQueries({ queryKey: ["messages", chatId] });
+          queryClient.refetchQueries({ queryKey: ["messages", chatId, isStaffMode ? 'staff' : 'client'] });
         }
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
         () => {
-          queryClient.refetchQueries({ queryKey: ["messages", chatId] });
+          queryClient.refetchQueries({ queryKey: ["messages", chatId, isStaffMode ? 'staff' : 'client'] });
         }
       )
       .on(
         "postgres_changes",
         { event: "DELETE", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
         () => {
-          queryClient.refetchQueries({ queryKey: ["messages", chatId] });
+          queryClient.refetchQueries({ queryKey: ["messages", chatId, isStaffMode ? 'staff' : 'client'] });
         }
       )
       .subscribe();
@@ -169,21 +170,21 @@ export const ChatWindow = ({ chatId, onBack }: ChatWindowProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [chatId, queryClient]);
+  }, [chatId, queryClient, isStaffMode]);
 
   // Realtime broadcast (works even if DB publication isn't enabled)
   useEffect(() => {
     const bcast = supabase
       .channel(`chat:broadcast:${chatId}`, { config: { broadcast: { self: false } } })
-      .on('broadcast', { event: 'new_message' }, () => {
-        queryClient.refetchQueries({ queryKey: ["messages", chatId] });
+      .on('broadcast', { event: '*' }, () => {
+        queryClient.refetchQueries({ queryKey: ["messages", chatId, isStaffMode ? 'staff' : 'client'] });
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(bcast);
     };
-  }, [chatId, queryClient]);
+  }, [chatId, queryClient, isStaffMode]);
 
 
   if (isLoading) {
@@ -197,7 +198,7 @@ export const ChatWindow = ({ chatId, onBack }: ChatWindowProps) => {
   const showingStaffTabs = isStaff && isStaffMode;
 
   return (
-    <div className={`flex-1 min-h-0 flex flex-col ${showingStaffTabs ? 'staff-mode' : 'bg-chat-bg'}`}>
+    <div className={`flex-1 min-h-0 flex flex-col overflow-x-hidden ${showingStaffTabs ? 'staff-mode' : 'bg-chat-bg'}`}>
       {/* Header */}
       <div className="border-b bg-card p-3 sm:p-4">
         <div className="flex items-center justify-between gap-2">
