@@ -57,7 +57,10 @@ export const OrganizationSwitcher = () => {
     <>
       <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="flex items-center gap-2 px-3">
+          <Button
+            variant="ghost"
+            className="flex items-center gap-2 px-3"
+          >
             <Avatar className="w-6 h-6">
               {currentOrganization?.logo_url ? (
                 <AvatarImage
@@ -77,7 +80,7 @@ export const OrganizationSwitcher = () => {
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="start" className="w-[280px]">
+        <DropdownMenuContent align="start" className="w-[280px] mr-[30px]">
           <DropdownMenuLabel>თქვენი ორგანიზაციები</DropdownMenuLabel>
           <DropdownMenuSeparator />
 
