@@ -87,17 +87,12 @@ const Index = () => {
               </p>
             </div>
           </div>
-
-          {/* Organization Switcher */}
-          <div className="border-l pl-4">
-            <OrganizationSwitcher />
-          </div>
         </div>
 
-        <Button variant="outline" size="sm" onClick={handleLogout}>
-          <LogOut className="w-4 h-4 mr-2" />
-          გასვლა
-        </Button>
+        {/* Organization Switcher moved to top-right */}
+        <div className="flex items-center">
+          <OrganizationSwitcher />
+        </div>
       </header>
 
       {/* Main Content */}
@@ -135,6 +130,13 @@ const Index = () => {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
       />
+      {/* Fixed bottom-left logout button */}
+      <div className="fixed bottom-4 left-4 z-50">
+        <Button variant="outline" size="sm" onClick={handleLogout}>
+          <LogOut className="w-4 h-4 mr-2" />
+          გასვლა
+        </Button>
+      </div>
     </div>
   );
 };
