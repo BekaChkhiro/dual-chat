@@ -55,7 +55,9 @@ export const KanbanTaskCard = ({ task, onEdit, onDelete }: KanbanTaskCardProps) 
 
   const statusAccent =
     task.status === "in_progress"
-      ? "border-primary"
+      ? "border-[#3c83f6]"
+      : task.status === "review"
+      ? "border-[#f59f0a]"
       : task.status === "completed"
       ? "border-green-500"
       : task.status === "failed"

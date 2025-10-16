@@ -254,10 +254,11 @@ export const CreateTaskDialog = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="to_start">დასაწყები</SelectItem>
-                <SelectItem value="in_progress">პროცესში</SelectItem>
-                <SelectItem value="completed">დასრულებული</SelectItem>
-                <SelectItem value="failed">ჩაიშალა</SelectItem>
+                  <SelectItem value="to_start">დასაწყები</SelectItem>
+                  <SelectItem value="in_progress">პროცესში</SelectItem>
+                  <SelectItem value="review">მოწმდება</SelectItem>
+                  <SelectItem value="completed">დასრულებული</SelectItem>
+                  <SelectItem value="failed">ჩაიშალა</SelectItem>
               </SelectContent>
             </Select>
           </div>

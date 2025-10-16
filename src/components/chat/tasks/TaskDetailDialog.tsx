@@ -297,10 +297,25 @@ export const TaskDetailDialog = ({
                 />
                 <Label
                   htmlFor="in_progress"
-                  className="flex items-center justify-center gap-2 rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 cursor-pointer transition-all"
+                  className="flex items-center justify-center gap-2 rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#3c83f6] peer-data-[state=checked]:bg-[#3c83f6]/10 cursor-pointer transition-all"
                 >
-                  <div className="w-3 h-3 rounded-full bg-primary" />
+                  <div className="w-3 h-3 rounded-full bg-[#3c83f6]" />
                   <span className="font-medium text-sm">პროცესში</span>
+                </Label>
+              </div>
+
+              <div>
+                <RadioGroupItem
+                  value="review"
+                  id="review"
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor="review"
+                  className="flex items-center justify-center gap-2 rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#f59f0a] peer-data-[state=checked]:bg-[#f59f0a]/10 cursor-pointer transition-all"
+                >
+                  <div className="w-3 h-3 rounded-full bg-[#f59f0a]" />
+                  <span className="font-medium text-sm">მოწმდება</span>
                 </Label>
               </div>
 

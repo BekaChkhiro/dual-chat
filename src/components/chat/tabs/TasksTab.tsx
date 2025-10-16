@@ -3,18 +3,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Plus, ListTodo } from "lucide-react";
 import { TaskCard, TaskStatus } from "../tasks/TaskCard";
 import { CreateTaskDialog } from "../tasks/CreateTaskDialog";
 import { TaskDetailDialog } from "../tasks/TaskDetailDialog";
 import { toast } from "sonner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+// Removed Select filter; replaced with pills + search
 
 interface TasksTabProps {
   chatId: string;
@@ -23,7 +18,8 @@ interface TasksTabProps {
 export const TasksTab = ({ chatId }: TasksTabProps) => {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | TaskStatus>("all");
+  const [search, setSearch] = useState("");
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [taskDetailOpen, setTaskDetailOpen] = useState(false);
 
@@ -131,11 +127,25 @@ export const TasksTab = ({ chatId }: TasksTabProps) => {
     setTaskDetailOpen(true);
   };
 
-  // Filter tasks by status
-  const filteredTasks =
-    filterStatus === "all"
-      ? tasks
-      : tasks.filter((task) => task.status === filterStatus);
+  // Filter tasks by status + search
+  const filteredTasks = (filterStatus === "all"
+    ? tasks
+    : tasks.filter((task) => task.status === filterStatus)
+  ).filter((t) => (search.trim() ? t.title.toLowerCase().includes(search.trim().toLowerCase()) : true));
+
+  // Status counts
+  const statusCounts: Record<"all" | TaskStatus, number> = {
+    all: tasks.length,
+    to_start: tasks.filter((t: any) => t.status === "to_start").length,
+    in_progress: tasks.filter((t: any) => t.status === "in_progress").length,
+    review: tasks.filter((t: any) => t.status === "review").length,
+    completed: tasks.filter((t: any) => t.status === "completed").length,
+    failed: tasks.filter((t: any) => t.status === "failed").length,
+  };
+
+  const pillBase = "px-3 py-1.5 rounded-full text-sm border transition-colors";
+  const pillActive = "bg-primary text-primary-foreground border-transparent";
+  const pillIdle = "bg-background hover:bg-muted border-border text-foreground";
 
   if (isLoading) {
     return (
@@ -160,20 +170,6 @@ export const TasksTab = ({ chatId }: TasksTabProps) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Filter */}
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ყველა</SelectItem>
-                <SelectItem value="to_start">დასაწყები</SelectItem>
-                <SelectItem value="in_progress">პროცესში</SelectItem>
-                <SelectItem value="completed">დასრულებული</SelectItem>
-                <SelectItem value="failed">ჩაიშალა</SelectItem>
-              </SelectContent>
-            </Select>
-
             <Button onClick={() => setDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               ახალი ამოცანა
@@ -184,8 +180,40 @@ export const TasksTab = ({ chatId }: TasksTabProps) => {
 
       {/* Tasks List */}
       <ScrollArea className="flex-1 p-4">
+        {/* Toolbar: status pills + search */}
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            {([
+              { key: "all", label: "ყველა" },
+              { key: "to_start", label: "დასაწყები" },
+              { key: "in_progress", label: "პროცესში" },
+              { key: "review", label: "მოწმდება" },
+              { key: "completed", label: "დასრულებული" },
+              { key: "failed", label: "ჩაიშალა" },
+            ] as const).map(({ key, label }) => (
+              <button
+                key={key}
+                className={`${pillBase} ${((filterStatus as string) === key ? pillActive : pillIdle)}`}
+                onClick={() => setFilterStatus(key as any)}
+              >
+                {label}
+                <span className="ml-2 inline-block rounded-full bg-black/10 dark:bg-white/10 px-2 text-xs">
+                  {statusCounts[key]}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="w-full md:w-64">
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="ძებნა სათაურით..."
+            />
+          </div>
+        </div>
+
         {filteredTasks.length > 0 ? (
-          <div className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {filteredTasks.map((task) => (
               <TaskCard
                 key={task.id}

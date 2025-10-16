@@ -9,12 +9,13 @@ interface StaffTabsProps {
     tasks: React.ReactNode;
     kanban: React.ReactNode;
     calendar: React.ReactNode;
+    files?: React.ReactNode;
   };
 }
 
 export const StaffTabs = ({ chatId, children }: StaffTabsProps) => {
   return (
-    <Tabs defaultValue="messages" className="flex-1 flex flex-col">
+    <Tabs defaultValue="messages" className="flex-1 min-h-0 flex flex-col">
       <TabsList className="w-full justify-start rounded-none border-b bg-white p-0">
         <TabsTrigger
           value="messages"
@@ -51,13 +52,20 @@ export const StaffTabs = ({ chatId, children }: StaffTabsProps) => {
           <Calendar className="w-4 h-4 mr-2" />
           კალენდარი
         </TabsTrigger>
+        <TabsTrigger
+          value="files"
+          className="relative rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground transition-all data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          ფაილები
+        </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="messages" className="flex-1 flex flex-col m-0 p-0 bg-staff-light staff-mode data-[state=inactive]:hidden">
+      <TabsContent value="messages" className="flex-1 min-h-0 flex flex-col m-0 p-0 bg-staff-light staff-mode data-[state=inactive]:hidden">
         {children.messages}
       </TabsContent>
 
-      <TabsContent value="about" className="flex-1 flex flex-col m-0 p-0 bg-white data-[state=inactive]:hidden">
+      <TabsContent value="about" className="flex-1 min-h-0 flex flex-col m-0 p-0 bg-white data-[state=inactive]:hidden">
         {children.about}
       </TabsContent>
 
@@ -71,6 +79,10 @@ export const StaffTabs = ({ chatId, children }: StaffTabsProps) => {
 
       <TabsContent value="calendar" className="flex-1 flex flex-col m-0 p-0 bg-white data-[state=inactive]:hidden">
         {children.calendar}
+      </TabsContent>
+
+      <TabsContent value="files" className="flex-1 flex flex-col m-0 p-0 bg-white data-[state=inactive]:hidden">
+        {children.files}
       </TabsContent>
     </Tabs>
   );

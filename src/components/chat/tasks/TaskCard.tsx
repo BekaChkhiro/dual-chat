@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export type TaskStatus = "to_start" | "in_progress" | "completed" | "failed";
+export type TaskStatus = "to_start" | "in_progress" | "review" | "completed" | "failed";
 
 interface Task {
   id: string;
@@ -42,7 +42,8 @@ interface TaskCardProps {
 
 const statusColors: Record<TaskStatus, string> = {
   to_start: "bg-gray-500",
-  in_progress: "bg-primary",
+  in_progress: "bg-[#3c83f6]",
+  review: "bg-[#f59f0a]",
   completed: "bg-green-500",
   failed: "bg-red-500",
 };
@@ -50,6 +51,7 @@ const statusColors: Record<TaskStatus, string> = {
 const statusLabels: Record<TaskStatus, string> = {
   to_start: "დასაწყები",
   in_progress: "პროცესში",
+  review: "მოწმდება",
   completed: "დასრულებული",
   failed: "ჩაიშალა",
 };

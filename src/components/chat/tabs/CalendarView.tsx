@@ -31,7 +31,8 @@ const localizer = dateFnsLocalizer({
 
 const statusColors: Record<TaskStatus, string> = {
   to_start: "#6b7280",
-  in_progress: "var(--primary)",
+  in_progress: "#3c83f6",
+  review: "#f59f0a",
   completed: "#22c55e",
   failed: "#ef4444",
 };
@@ -215,8 +216,12 @@ export const CalendarView = ({ chatId }: CalendarViewProps) => {
               <span className="text-muted-foreground">{statusLabels.to_start}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="inline-block w-3 h-3 rounded-full bg-primary" />
+              <span className="inline-block w-3 h-3 rounded-full bg-[#3c83f6]" />
               <span className="text-muted-foreground">{statusLabels.in_progress}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-full bg-[#f59f0a]" />
+              <span className="text-muted-foreground">{statusLabels.review}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="inline-block w-3 h-3 rounded-full bg-green-500" />

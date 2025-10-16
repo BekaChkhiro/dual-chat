@@ -91,7 +91,7 @@ export const ChatList = ({ selectedChatId, onSelectChat, onCreateChat }: ChatLis
   }
 
   return (
-    <div className="w-[400px] border-r bg-sidebar-bg flex flex-col">
+    <div className="w-[400px] border-r bg-sidebar-bg flex flex-col bg-white">
       <div className="p-4 border-b space-y-3">
         <div className="flex items-center gap-2">
           <MessageSquare className="w-5 h-5 text-primary" />

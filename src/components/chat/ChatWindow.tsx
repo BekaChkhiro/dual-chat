@@ -12,6 +12,7 @@ import { AboutProjectTab } from "./tabs/AboutProjectTab";
 import { TasksTab } from "./tabs/TasksTab";
 import { KanbanBoard } from "./tabs/KanbanBoard";
 import { CalendarView } from "./tabs/CalendarView";
+import { FilesTab } from "./tabs/FilesTab";
 
 export interface MessageAttachment {
   name: string;
@@ -172,7 +173,7 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
   const showingStaffTabs = isStaff && isStaffMode;
 
   return (
-    <div className={`flex-1 flex flex-col ${showingStaffTabs ? 'staff-mode' : 'bg-chat-bg'}`}>
+    <div className={`flex-1 min-h-0 flex flex-col ${showingStaffTabs ? 'staff-mode' : 'bg-chat-bg'}`}>
       {/* Header */}
       <div className="border-b bg-card p-4">
         <div className="flex items-center justify-between">
@@ -203,6 +204,7 @@ export const ChatWindow = ({ chatId }: ChatWindowProps) => {
             tasks: <TasksTab chatId={chatId} />,
             kanban: <KanbanBoard chatId={chatId} />,
             calendar: <CalendarView chatId={chatId} />,
+            files: <FilesTab chatId={chatId} />,
           }}
         </StaffTabs>
       ) : (

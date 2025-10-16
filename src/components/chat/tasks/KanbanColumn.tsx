@@ -32,7 +32,8 @@ interface KanbanColumnProps {
 
 const statusColors: Record<TaskStatus, string> = {
   to_start: "bg-gray-500",
-  in_progress: "bg-primary",
+  in_progress: "bg-[#3c83f6]",
+  review: "bg-[#f59f0a]",
   completed: "bg-green-500",
   failed: "bg-red-500",
 };
@@ -49,7 +50,9 @@ export const KanbanColumn = ({
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   return (
-    <div className="flex-1 min-w-[300px] flex flex-col bg-card rounded-lg border overflow-hidden">
+    <div
+      className="flex-none basis-full sm:basis-[calc((100%-16px)/2)] lg:basis-[calc((100%-32px)/3)] xl:basis-[calc((100%-48px)/4)] flex flex-col bg-card rounded-lg border overflow-hidden"
+    >
       {/* Column Header */}
       <div className="p-4 border-b bg-card sticky top-0 z-10">
         <div className="flex items-center justify-between">

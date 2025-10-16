@@ -28,6 +28,7 @@ interface KanbanBoardProps {
 const columns: { status: TaskStatus; title: string }[] = [
   { status: "to_start", title: "დასაწყები" },
   { status: "in_progress", title: "პროცესში" },
+  { status: "review", title: "მოწმდება" },
   { status: "completed", title: "დასრულებული" },
   { status: "failed", title: "ჩაიშალა" },
 ];
@@ -181,7 +182,7 @@ export const KanbanBoard = ({ chatId }: KanbanBoardProps) => {
 
     const overId = over.id as string;
     // If hovering over a column
-    if (["to_start", "in_progress", "completed", "failed"].includes(overId)) {
+    if (["to_start", "in_progress", "review", "completed", "failed"].includes(overId)) {
       const col = overId as TaskStatus;
       setDropColumn(col);
       setDropIndex(tasks.filter((t) => t.status === col).length);
@@ -285,7 +286,7 @@ export const KanbanBoard = ({ chatId }: KanbanBoardProps) => {
 
       {/* Kanban Board */}
       <ScrollArea className="flex-1">
-        <div className="p-4">
+        <div className="p-4 overflow-x-auto w-full">
           {tasks.length > 0 ? (
             <DndContext
               sensors={sensors}
@@ -294,7 +295,7 @@ export const KanbanBoard = ({ chatId }: KanbanBoardProps) => {
               onDragEnd={handleDragEnd}
               onDragOver={handleDragOver}
             >
-              <div className="flex gap-4 min-h-[600px]">
+              <div className="flex gap-4 min-h-[600px] w-[100%]">
                 {columns.map((column) => (
                   <KanbanColumn
                     key={column.status}
