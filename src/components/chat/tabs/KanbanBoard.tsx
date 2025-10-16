@@ -17,6 +17,7 @@ import { Plus, LayoutGrid } from "lucide-react";
 import { KanbanColumn } from "../tasks/KanbanColumn";
 import { KanbanTaskCard } from "../tasks/KanbanTaskCard";
 import { CreateTaskDialog } from "../tasks/CreateTaskDialog";
+import { TaskDetailDialog } from "../tasks/TaskDetailDialog";
 import { TaskStatus } from "../tasks/TaskCard";
 import { toast } from "sonner";
 
@@ -36,6 +37,10 @@ export const KanbanBoard = ({ chatId }: KanbanBoardProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editTask, setEditTask] = useState<any>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [dropColumn, setDropColumn] = useState<TaskStatus | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const [taskDetailOpen, setTaskDetailOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -107,15 +112,54 @@ export const KanbanBoard = ({ chatId }: KanbanBoardProps) => {
     },
   });
 
-  const deleteTaskMutation = useMutation({
-    mutationFn: async (taskId: string) => {
-      const { error } = await supabase.from("tasks").delete().eq("id", taskId);
+  type Task = {
+    id: string;
+    chat_id: string;
+    title: string;
+    description: string | null;
+    status: TaskStatus;
+    due_date: string | null;
+    assignee_id: string | null;
+    created_by: string;
+    attachments?: any[];
+    // plus any other columns; we'll ignore extra fields on insert
+  };
 
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (task: Task) => {
+      const { error } = await supabase.from("tasks").delete().eq("id", task.id);
       if (error) throw error;
+      return task;
     },
-    onSuccess: () => {
+    onSuccess: (deletedTask) => {
       queryClient.invalidateQueries({ queryKey: ["tasks", chatId] });
-      toast.success("ამოცანა წაიშალა");
+      toast.success("ამოცანა წაიშალა", {
+        action: {
+          label: "დაბრუნება",
+          onClick: async () => {
+            // Recreate the task with the same ID and fields (excluding computed props)
+            const { id, chat_id, title, description, status, due_date, assignee_id, created_by, attachments } = deletedTask as Task;
+            const { error } = await supabase.from("tasks").insert({
+              id,
+              chat_id,
+              title,
+              description,
+              status,
+              due_date,
+              assignee_id,
+              created_by,
+              attachments: attachments || [],
+            } as any);
+            if (error) {
+              console.error("Undo failed:", error);
+              toast.error("ვერ დავაბრუნე ამოცანა");
+            } else {
+              queryClient.invalidateQueries({ queryKey: ["tasks", chatId] });
+              toast.success("ამოცანა დაბრუნებულია");
+            }
+          },
+        },
+      });
     },
     onError: (error) => {
       toast.error("ამოცანის წაშლა ვერ მოხერხდა");
@@ -127,11 +171,45 @@ export const KanbanBoard = ({ chatId }: KanbanBoardProps) => {
     setActiveId(event.active.id as string);
   };
 
+  const handleDragOver = (event: any) => {
+    const over = event.over;
+    if (!over) {
+      setDropColumn(null);
+      setDropIndex(null);
+      return;
+    }
+
+    const overId = over.id as string;
+    // If hovering over a column
+    if (["to_start", "in_progress", "completed", "failed"].includes(overId)) {
+      const col = overId as TaskStatus;
+      setDropColumn(col);
+      setDropIndex(tasks.filter((t) => t.status === col).length);
+      return;
+    }
+
+    // Otherwise hovering over a task card
+    const overTask = tasks.find((t) => t.id === overId);
+    if (overTask) {
+      const col = overTask.status as TaskStatus;
+      const list = tasks.filter((t) => t.status === col);
+      const idx = list.findIndex((t) => t.id === overTask.id);
+      setDropColumn(col);
+      setDropIndex(Math.max(0, idx));
+      return;
+    }
+
+    setDropColumn(null);
+    setDropIndex(null);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (!over) {
       setActiveId(null);
+      setDropColumn(null);
+      setDropIndex(null);
       return;
     }
 
@@ -146,11 +224,19 @@ export const KanbanBoard = ({ chatId }: KanbanBoardProps) => {
     }
 
     setActiveId(null);
+    setDropColumn(null);
+    setDropIndex(null);
   };
 
   const handleEdit = (task: any) => {
-    setEditTask(task);
-    setDialogOpen(true);
+    // Open preview/details sheet instead of edit dialog
+    setSelectedTask(task);
+    setTaskDetailOpen(true);
+  };
+
+  const handleDetailOpenChange = (open: boolean) => {
+    setTaskDetailOpen(open);
+    if (!open) setSelectedTask(null);
   };
 
   const handleDialogClose = (open: boolean) => {
@@ -206,6 +292,7 @@ export const KanbanBoard = ({ chatId }: KanbanBoardProps) => {
               collisionDetection={closestCorners}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
+              onDragOver={handleDragOver}
             >
               <div className="flex gap-4 min-h-[600px]">
                 {columns.map((column) => (
@@ -214,8 +301,10 @@ export const KanbanBoard = ({ chatId }: KanbanBoardProps) => {
                     status={column.status}
                     title={column.title}
                     tasks={tasksByStatus[column.status]}
+                    dropIndex={dropColumn === column.status ? dropIndex : null}
+                    isDragging={!!activeId}
                     onEdit={handleEdit}
-                    onDelete={deleteTaskMutation.mutate}
+                    onDelete={(task) => deleteTaskMutation.mutate(task as any)}
                   />
                 ))}
               </div>
@@ -256,6 +345,19 @@ export const KanbanBoard = ({ chatId }: KanbanBoardProps) => {
         onOpenChange={handleDialogClose}
         chatId={chatId}
         editTask={editTask}
+      />
+
+      {/* Task Preview/Details */}
+      <TaskDetailDialog
+        open={taskDetailOpen}
+        onOpenChange={handleDetailOpenChange}
+        task={selectedTask}
+        onDelete={(taskId) => {
+          const task = tasks.find((t) => t.id === taskId);
+          if (task) deleteTaskMutation.mutate(task as any);
+        }}
+        onStatusChange={(taskId, status) => updateTaskStatusMutation.mutate({ taskId, status })}
+        isDeleting={deleteTaskMutation.isPending}
       />
     </div>
   );

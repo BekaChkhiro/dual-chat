@@ -31,7 +31,7 @@ const localizer = dateFnsLocalizer({
 
 const statusColors: Record<TaskStatus, string> = {
   to_start: "#6b7280",
-  in_progress: "#3b82f6",
+  in_progress: "var(--primary)",
   completed: "#22c55e",
   failed: "#ef4444",
 };
@@ -169,6 +169,9 @@ export const CalendarView = ({ chatId }: CalendarViewProps) => {
         backgroundColor: statusColors[task.status as TaskStatus],
         borderColor: statusColors[task.status as TaskStatus],
         color: "white",
+        borderRadius: 8,
+        padding: "2px 6px",
+        boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
       },
     };
   };
@@ -205,33 +208,54 @@ export const CalendarView = ({ chatId }: CalendarViewProps) => {
       {/* Calendar */}
       <ScrollArea className="flex-1">
         <div className="p-4">
+          {/* Legend */}
+          <div className="flex flex-wrap items-center gap-3 mb-4 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-full bg-gray-500" />
+              <span className="text-muted-foreground">{statusLabels.to_start}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-full bg-primary" />
+              <span className="text-muted-foreground">{statusLabels.in_progress}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-full bg-green-500" />
+              <span className="text-muted-foreground">{statusLabels.completed}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-full bg-red-500" />
+              <span className="text-muted-foreground">{statusLabels.failed}</span>
+            </div>
+          </div>
           {tasks.length > 0 ? (
-            <div className="h-[700px] bg-card rounded-lg p-4">
-              <BigCalendar
-                localizer={localizer}
-                events={events}
-                startAccessor="start"
-                endAccessor="end"
-                culture="ka"
-                messages={{
-                  next: "შემდეგი",
-                  previous: "წინა",
-                  today: "დღეს",
-                  month: "თვე",
-                  week: "კვირა",
-                  day: "დღე",
-                  agenda: "დღის წესრიგი",
-                  date: "თარიღი",
-                  time: "დრო",
-                  event: "ამოცანა",
-                  noEventsInRange: "ამ პერიოდში ამოცანები არ არის",
-                  showMore: (total) => `+${total} მეტი`,
-                }}
-                views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
-                defaultView={Views.MONTH}
-                onSelectEvent={handleSelectEvent}
-                eventPropGetter={eventStyleGetter}
-              />
+            <div className="h-[700px] bg-card rounded-lg p-4 border">
+              <div className="app-calendar h-full">
+                <BigCalendar
+                  localizer={localizer}
+                  events={events}
+                  startAccessor="start"
+                  endAccessor="end"
+                  culture="ka"
+                  messages={{
+                    next: "შემდეგი",
+                    previous: "წინა",
+                    today: "დღეს",
+                    month: "თვე",
+                    week: "კვირა",
+                    day: "დღე",
+                    agenda: "დღის წესრიგი",
+                    date: "თარიღი",
+                    time: "დრო",
+                    event: "ამოცანა",
+                    noEventsInRange: "ამ პერიოდში ამოცანები არ არის",
+                    showMore: (total) => `+${total} მეტი`,
+                  }}
+                  views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
+                  defaultView={Views.MONTH}
+                  onSelectEvent={handleSelectEvent}
+                  eventPropGetter={eventStyleGetter}
+                />
+              </div>
             </div>
           ) : (
             <div className="h-[500px] flex items-center justify-center text-center">

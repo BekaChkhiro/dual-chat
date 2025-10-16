@@ -24,8 +24,10 @@ interface KanbanColumnProps {
   status: TaskStatus;
   title: string;
   tasks: Task[];
+  dropIndex?: number | null;
+  isDragging?: boolean;
   onEdit: (task: Task) => void;
-  onDelete: (taskId: string) => void;
+  onDelete: (task: Task) => void;
 }
 
 const statusColors: Record<TaskStatus, string> = {
@@ -39,40 +41,51 @@ export const KanbanColumn = ({
   status,
   title,
   tasks,
+  dropIndex = null,
+  isDragging = false,
   onEdit,
   onDelete,
 }: KanbanColumnProps) => {
-  const { setNodeRef } = useDroppable({
-    id: status,
-  });
+  const { setNodeRef, isOver } = useDroppable({ id: status });
 
   return (
-    <div className="flex-1 min-w-[280px] flex flex-col">
+    <div className="flex-1 min-w-[300px] flex flex-col bg-card rounded-lg border overflow-hidden">
       {/* Column Header */}
-      <div className="p-4 border-b bg-card">
+      <div className="p-4 border-b bg-card sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold">{title}</h3>
-          <Badge className={statusColors[status]}>{tasks.length}</Badge>
+          <Badge className={`${statusColors[status]} text-white shadow-sm`}>{tasks.length}</Badge>
         </div>
       </div>
 
       {/* Tasks */}
       <div
         ref={setNodeRef}
-        className="flex-1 p-4 space-y-3 min-h-[500px] bg-muted/20"
+        className={`flex-1 p-3 space-y-3 min-h-[500px] bg-secondary transition ring-offset-1 ${
+          isOver ? "ring-2 ring-primary/40" : "ring-0"
+        }`}
       >
         <SortableContext
           items={tasks.map((t) => t.id)}
           strategy={verticalListSortingStrategy}
         >
-          {tasks.map((task) => (
-            <KanbanTaskCard
-              key={task.id}
-              task={task}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
-          ))}
+          {tasks.length > 0 ? (
+            tasks.map((task, index) => (
+              <div key={task.id}>
+                {isDragging && dropIndex === index && (
+                  <div className="h-3 rounded border-2 border-dashed border-primary/40 bg-primary/5" />
+                )}
+                <KanbanTaskCard task={task} onEdit={onEdit} onDelete={onDelete} />
+                {isDragging && dropIndex === tasks.length && index === tasks.length - 1 && (
+                  <div className="h-3 rounded border-2 border-dashed border-primary/40 bg-primary/5" />
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="text-center text-xs text-muted-foreground py-8 border-2 border-dashed border-muted rounded-lg">
+              ამ სვეტში ამოცანები არ არის
+            </div>
+          )}
         </SortableContext>
       </div>
     </div>

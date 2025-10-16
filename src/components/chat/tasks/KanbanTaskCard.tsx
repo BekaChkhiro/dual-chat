@@ -2,13 +2,18 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, User, GripVertical, Edit, Trash2 } from "lucide-react";
+import { Calendar, User, GripVertical, Trash2 } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { ka } from "date-fns/locale";
 import { TaskStatus } from "./TaskCard";
@@ -29,7 +34,7 @@ interface Task {
 interface KanbanTaskCardProps {
   task: Task;
   onEdit: (task: Task) => void;
-  onDelete: (taskId: string) => void;
+  onDelete: (task: Task) => void;
 }
 
 export const KanbanTaskCard = ({ task, onEdit, onDelete }: KanbanTaskCardProps) => {
@@ -48,55 +53,42 @@ export const KanbanTaskCard = ({ task, onEdit, onDelete }: KanbanTaskCardProps) 
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const statusAccent =
+    task.status === "in_progress"
+      ? "border-primary"
+      : task.status === "completed"
+      ? "border-green-500"
+      : task.status === "failed"
+      ? "border-red-500"
+      : "border-gray-300";
+
   return (
     <Card
       ref={setNodeRef}
       style={style}
-      className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+      {...attributes}
+      {...listeners}
+      className={`cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow border-l-4 ${statusAccent} shadow-sm hover:bg-muted/30`}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!isDragging) onEdit(task);
+      }}
     >
       <CardHeader className="pb-3 p-3">
         <div className="flex items-start gap-2">
-          <div {...attributes} {...listeners} className="mt-1 cursor-grab">
+          <div className="mt-1 cursor-grab">
             <GripVertical className="w-4 h-4 text-muted-foreground" />
           </div>
           <div className="flex-1">
-            <h4 className="font-medium text-sm">{task.title}</h4>
+            <h4 className="font-medium text-sm leading-snug truncate">{task.title}</h4>
             {task.description && (
               <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                 {task.description}
               </p>
             )}
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <span className="sr-only">Menu</span>
-                <div className="flex flex-col gap-0.5">
-                  <div className="w-1 h-1 rounded-full bg-current" />
-                  <div className="w-1 h-1 rounded-full bg-current" />
-                  <div className="w-1 h-1 rounded-full bg-current" />
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEdit(task)}>
-                <Edit className="w-4 h-4 mr-2" />
-                რედაქტირება
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onDelete(task.id)}
-                className="text-destructive"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                წაშლა
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Confirm delete with AlertDialog */}
+          <DeleteButton task={task} onDelete={onDelete} />
         </div>
       </CardHeader>
 
@@ -112,7 +104,7 @@ export const KanbanTaskCard = ({ task, onEdit, onDelete }: KanbanTaskCardProps) 
           {task.assignee && (
             <div className="flex items-center gap-1">
               <User className="w-3 h-3" />
-              <span className="truncate max-w-[120px]">
+              <span className="truncate max-w-[140px]">
                 {task.assignee.full_name || task.assignee.email}
               </span>
             </div>
@@ -120,5 +112,44 @@ export const KanbanTaskCard = ({ task, onEdit, onDelete }: KanbanTaskCardProps) 
         </div>
       </CardContent>
     </Card>
+  );
+};
+
+const DeleteButton = ({ task, onDelete }: { task: Task; onDelete: (task: Task) => void }) => {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <Trash2 className="w-4 h-4" />
+          <span className="sr-only">წაშლა</span>
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>ამოცანის წაშლა?</AlertDialogTitle>
+          <AlertDialogDescription>
+            მოქმედება შეუქცევადია. გსურთ წაშალოთ „{task.title}“?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>გაუქმება</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(task);
+            }}
+          >
+            წაშლა
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };

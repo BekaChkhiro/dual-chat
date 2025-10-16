@@ -145,3 +145,86 @@ All colors MUST be HSL.
     --ring: var(--staff);
   }
 }
+@layer components {
+  /* Calendar polish (react-big-calendar) */
+  .rbc-calendar .rbc-today {
+    background-color: hsl(var(--muted));
+  }
+  .rbc-calendar .rbc-event {
+    border: none;
+  }
+  .rbc-calendar .rbc-toolbar button {
+    border-radius: 8px;
+  }
+
+  /* Scoped custom theming for our app calendar */
+  .app-calendar .rbc-toolbar {
+    margin-bottom: 0.75rem;
+    gap: 0.5rem;
+  }
+  .app-calendar .rbc-toolbar .rbc-toolbar-label {
+    font-weight: 600;
+  }
+  .app-calendar .rbc-btn-group button {
+    padding: 0.375rem 0.625rem;
+    border-radius: 0.5rem;
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border));
+  }
+  .app-calendar .rbc-btn-group button:hover {
+    background-color: hsl(var(--muted));
+  }
+  .app-calendar .rbc-btn-group button.rbc-active {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-color: transparent;
+  }
+
+  .app-calendar .rbc-header {
+    background-color: color-mix(in oklab, hsl(var(--muted)) 60%, transparent);
+    color: hsl(var(--muted-foreground));
+    font-weight: 500;
+    padding: 0.5rem 0.25rem;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+  .app-calendar .rbc-month-row + .rbc-month-row {
+    border-top: 1px solid hsl(var(--border));
+  }
+  .app-calendar .rbc-day-bg + .rbc-day-bg {
+    border-left: 1px solid hsl(var(--border));
+  }
+  .app-calendar .rbc-time-view .rbc-time-content > * + * {
+    border-left: 1px solid hsl(var(--border));
+  }
+  .app-calendar .rbc-time-slot {
+    border-top: 1px solid hsl(var(--border));
+  }
+
+  .app-calendar .rbc-off-range-bg {
+    background: transparent;
+  }
+  .app-calendar .rbc-off-range {
+    color: hsl(var(--muted-foreground));
+  }
+  .app-calendar .rbc-date-cell {
+    padding: 0.25rem 0.375rem;
+    font-size: 0.75rem;
+    color: hsl(var(--muted-foreground));
+  }
+  .app-calendar .rbc-now .rbc-button-link {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-radius: 999px;
+    padding: 0 0.375rem;
+  }
+
+  .app-calendar .rbc-event {
+    border-radius: 0.5rem;
+    padding: 2px 6px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .app-calendar .rbc-event:hover {
+    filter: brightness(0.98);
+  }
+}
