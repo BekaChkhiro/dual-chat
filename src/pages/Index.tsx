@@ -74,24 +74,33 @@ const Index = () => {
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Top Header */}
-      <header className="border-b bg-card px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <MessageSquare className="w-5 h-5 text-primary" />
+      <header className="border-b bg-card px-3 sm:px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg">
+              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             </div>
-            <div>
-              <h1 className="font-bold text-xl">DualChat</h1>
-              <p className="text-xs text-muted-foreground">
+            <div className="min-w-0">
+              <h1 className="font-bold text-base sm:text-xl">DualChat</h1>
+              <p className="text-xs text-muted-foreground hidden sm:block">
                 პროფესიონალური გუნდური კომუნიკაცია
               </p>
             </div>
           </div>
         </div>
 
-        {/* Organization Switcher moved to top-right */}
-        <div className="flex items-center">
+        {/* Organization Switcher and Logout Button */}
+        <div className="flex items-center gap-1 sm:gap-2">
           <OrganizationSwitcher />
+          {/* Desktop: Show button with text */}
+          <Button variant="outline" size="sm" onClick={handleLogout} className="hidden sm:flex">
+            <LogOut className="w-4 h-4 mr-2" />
+            გასვლა
+          </Button>
+          {/* Mobile: Show icon only */}
+          <Button variant="outline" size="icon" onClick={handleLogout} className="sm:hidden h-9 w-9">
+            <LogOut className="w-4 h-4" />
+          </Button>
         </div>
       </header>
 
@@ -149,13 +158,6 @@ const Index = () => {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
       />
-      {/* Fixed bottom-left logout button (desktop only) */}
-      <div className="hidden md:fixed md:bottom-4 md:left-4 z-50">
-        <Button variant="outline" size="sm" onClick={handleLogout}>
-          <LogOut className="w-4 h-4 mr-2" />
-          გასვლა
-        </Button>
-      </div>
     </div>
   );
 };

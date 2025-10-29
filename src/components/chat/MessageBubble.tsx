@@ -127,7 +127,7 @@ export const MessageBubble = ({
   };
 
   return (
-    <div className={cn("flex gap-2 group", isOwn ? "justify-end" : "justify-start")}>
+    <div className={cn("flex gap-1 sm:gap-2 group", isOwn ? "justify-end" : "justify-start")}>
       <div className={cn("max-w-[70%] space-y-1")}>
         {!isOwn && (
           <div className="flex items-center gap-2 px-3">
@@ -380,9 +380,9 @@ export const MessageBubble = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="h-7 w-7 sm:h-8 sm:w-8 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
             >
-              <MoreVertical className="w-4 h-4" />
+              <MoreVertical className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

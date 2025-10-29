@@ -11,7 +11,6 @@ import {
   DragStartEvent,
   DragEndEvent,
 } from "@dnd-kit/core";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Plus, LayoutGrid } from "lucide-react";
 import { KanbanColumn } from "../tasks/KanbanColumn";
@@ -264,29 +263,34 @@ export const KanbanBoard = ({ chatId }: KanbanBoardProps) => {
   }
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
-      <div className="border-b bg-card p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <LayoutGrid className="w-5 h-5 text-primary" />
-            <div>
-              <h3 className="font-semibold">კანბანი</h3>
-              <p className="text-sm text-muted-foreground">
+      <div className="border-b bg-card p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
+            <div className="min-w-0">
+              <h3 className="font-semibold text-sm sm:text-base">კანბანი</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                 გადაათრიეთ ამოცანები სვეტებს შორის
               </p>
             </div>
           </div>
-          <Button onClick={() => setDialogOpen(true)}>
+          {/* Desktop: Show button with text */}
+          <Button onClick={() => setDialogOpen(true)} size="sm" className="hidden sm:flex">
             <Plus className="w-4 h-4 mr-2" />
             ახალი ამოცანა
+          </Button>
+          {/* Mobile: Show icon only */}
+          <Button onClick={() => setDialogOpen(true)} size="icon" className="sm:hidden h-8 w-8 shrink-0">
+            <Plus className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
       {/* Kanban Board */}
-      <ScrollArea className="flex-1">
-        <div className="p-4 overflow-x-auto w-full">
+      <div className="flex-1 min-h-0 overflow-auto">
+        <div className="p-3 sm:p-4 h-full">
           {tasks.length > 0 ? (
             <DndContext
               sensors={sensors}
@@ -295,7 +299,7 @@ export const KanbanBoard = ({ chatId }: KanbanBoardProps) => {
               onDragEnd={handleDragEnd}
               onDragOver={handleDragOver}
             >
-              <div className="flex gap-4 min-h-[600px] w-[100%]">
+              <div className="flex gap-3 sm:gap-4 min-h-[400px] sm:min-h-[600px] w-full">
                 {columns.map((column) => (
                   <KanbanColumn
                     key={column.status}
@@ -321,16 +325,16 @@ export const KanbanBoard = ({ chatId }: KanbanBoardProps) => {
               </DragOverlay>
             </DndContext>
           ) : (
-            <div className="h-[500px] flex items-center justify-center text-center">
+            <div className="h-full min-h-[300px] flex items-center justify-center text-center">
               <div>
-                <LayoutGrid className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
-                <p className="text-muted-foreground text-lg mb-2">
+                <LayoutGrid className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-muted-foreground/50" />
+                <p className="text-muted-foreground text-base sm:text-lg mb-2">
                   ჯერ არ არის ამოცანები
                 </p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  დააჭირეთ "ახალი ამოცანა" ღილაკს ამოცანის დასამატებლად
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4 px-4">
+                  დააჭირეთ "+" ღილაკს ამოცანის დასამატებლად
                 </p>
-                <Button onClick={() => setDialogOpen(true)}>
+                <Button onClick={() => setDialogOpen(true)} size="sm">
                   <Plus className="w-4 h-4 mr-2" />
                   ახალი ამოცანა
                 </Button>
@@ -338,7 +342,7 @@ export const KanbanBoard = ({ chatId }: KanbanBoardProps) => {
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Create/Edit Dialog */}
       <CreateTaskDialog

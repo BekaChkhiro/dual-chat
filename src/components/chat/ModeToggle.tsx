@@ -12,26 +12,29 @@ export const ModeToggle = ({ isStaffMode, onToggle }: ModeToggleProps) => {
   return (
     <div
       className={cn(
-        "flex items-center gap-3 px-4 py-2 rounded-lg border-2 transition-all",
+        "flex items-center gap-1.5 sm:gap-3 px-1.5 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg border sm:border-2 transition-all",
         isStaffMode
           ? "bg-staff-light border-staff"
           : "bg-primary-light border-primary"
       )}
     >
       {isStaffMode ? (
-        <Shield className="w-5 h-5 text-staff" />
+        <Shield className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-staff" />
       ) : (
-        <Users className="w-5 h-5 text-primary" />
+        <Users className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-primary" />
       )}
       <div className="flex items-center gap-2">
-        <Label htmlFor="mode-toggle" className="font-medium cursor-pointer">
+        <Label htmlFor="mode-toggle" className="font-medium cursor-pointer text-sm hidden sm:block">
           {isStaffMode ? "პერსონალის რეჟიმი" : "კლიენტის რეჟიმი"}
         </Label>
         <Switch
           id="mode-toggle"
           checked={isStaffMode}
           onCheckedChange={onToggle}
-          className={isStaffMode ? "data-[state=checked]:bg-staff" : ""}
+          className={cn(
+            "scale-75 sm:scale-100",
+            isStaffMode ? "data-[state=checked]:bg-staff" : ""
+          )}
         />
       </div>
     </div>

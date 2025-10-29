@@ -5,7 +5,6 @@ import { Calendar as BigCalendar, dateFnsLocalizer, Views } from "react-big-cale
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { ka } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Plus, Calendar as CalendarIcon } from "lucide-react";
 import { CreateTaskDialog } from "../tasks/CreateTaskDialog";
@@ -40,6 +39,7 @@ const statusColors: Record<TaskStatus, string> = {
 const statusLabels: Record<TaskStatus, string> = {
   to_start: "დასაწყები",
   in_progress: "პროცესში",
+  review: "შემოწმებაში",
   completed: "დასრულებული",
   failed: "ჩაიშალა",
 };
@@ -207,80 +207,78 @@ export const CalendarView = ({ chatId }: CalendarViewProps) => {
       </div>
 
       {/* Calendar */}
-      <ScrollArea className="flex-1">
-        <div className="p-4">
-          {/* Legend */}
-          <div className="flex flex-wrap items-center gap-3 mb-4 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="inline-block w-3 h-3 rounded-full bg-gray-500" />
-              <span className="text-muted-foreground">{statusLabels.to_start}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-block w-3 h-3 rounded-full bg-[#3c83f6]" />
-              <span className="text-muted-foreground">{statusLabels.in_progress}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-block w-3 h-3 rounded-full bg-[#f59f0a]" />
-              <span className="text-muted-foreground">{statusLabels.review}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-block w-3 h-3 rounded-full bg-green-500" />
-              <span className="text-muted-foreground">{statusLabels.completed}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-block w-3 h-3 rounded-full bg-red-500" />
-              <span className="text-muted-foreground">{statusLabels.failed}</span>
+      <div className="flex-1 min-h-0 flex flex-col p-4">
+        {/* Legend */}
+        <div className="flex flex-wrap items-center gap-3 mb-4 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-gray-500" />
+            <span className="text-muted-foreground">{statusLabels.to_start}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-[#3c83f6]" />
+            <span className="text-muted-foreground">{statusLabels.in_progress}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-[#f59f0a]" />
+            <span className="text-muted-foreground">{statusLabels.review}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-green-500" />
+            <span className="text-muted-foreground">{statusLabels.completed}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-red-500" />
+            <span className="text-muted-foreground">{statusLabels.failed}</span>
+          </div>
+        </div>
+        {tasks.length > 0 ? (
+          <div className="flex-1 min-h-0 bg-card rounded-lg p-4 border overflow-hidden">
+            <div className="app-calendar h-full">
+              <BigCalendar
+                localizer={localizer}
+                events={events}
+                startAccessor="start"
+                endAccessor="end"
+                culture="ka"
+                messages={{
+                  next: "შემდეგი",
+                  previous: "წინა",
+                  today: "დღეს",
+                  month: "თვე",
+                  week: "კვირა",
+                  day: "დღე",
+                  agenda: "დღის წესრიგი",
+                  date: "თარიღი",
+                  time: "დრო",
+                  event: "ამოცანა",
+                  noEventsInRange: "ამ პერიოდში ამოცანები არ არის",
+                  showMore: (total) => `+${total} მეტი`,
+                }}
+                views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
+                defaultView={Views.MONTH}
+                onSelectEvent={handleSelectEvent}
+                eventPropGetter={eventStyleGetter}
+              />
             </div>
           </div>
-          {tasks.length > 0 ? (
-            <div className="h-[700px] bg-card rounded-lg p-4 border">
-              <div className="app-calendar h-full">
-                <BigCalendar
-                  localizer={localizer}
-                  events={events}
-                  startAccessor="start"
-                  endAccessor="end"
-                  culture="ka"
-                  messages={{
-                    next: "შემდეგი",
-                    previous: "წინა",
-                    today: "დღეს",
-                    month: "თვე",
-                    week: "კვირა",
-                    day: "დღე",
-                    agenda: "დღის წესრიგი",
-                    date: "თარიღი",
-                    time: "დრო",
-                    event: "ამოცანა",
-                    noEventsInRange: "ამ პერიოდში ამოცანები არ არის",
-                    showMore: (total) => `+${total} მეტი`,
-                  }}
-                  views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
-                  defaultView={Views.MONTH}
-                  onSelectEvent={handleSelectEvent}
-                  eventPropGetter={eventStyleGetter}
-                />
-              </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-center">
+            <div>
+              <CalendarIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+              <p className="text-muted-foreground text-lg mb-2">
+                ჯერ არ არის ამოცანები
+              </p>
+              <p className="text-sm text-muted-foreground mb-4">
+                დააჭირეთ "ახალი ამოცანა" ღილაკს ამოცანის დასამატებლად
+              </p>
+              <Button onClick={() => setDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                ახალი ამოცანა
+              </Button>
             </div>
-          ) : (
-            <div className="h-[500px] flex items-center justify-center text-center">
-              <div>
-                <CalendarIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
-                <p className="text-muted-foreground text-lg mb-2">
-                  ჯერ არ არის ამოცანები
-                </p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  დააჭირეთ "ახალი ამოცანა" ღილაკს ამოცანის დასამატებლად
-                </p>
-                <Button onClick={() => setDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  ახალი ამოცანა
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
+          </div>
+        )}
+      </div>
 
       {/* Task Detail Dialog */}
       <TaskDetailDialog

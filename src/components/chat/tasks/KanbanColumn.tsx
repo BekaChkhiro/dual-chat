@@ -51,20 +51,20 @@ export const KanbanColumn = ({
 
   return (
     <div
-      className="flex-none basis-full sm:basis-[calc((100%-16px)/2)] lg:basis-[calc((100%-32px)/3)] xl:basis-[calc((100%-48px)/4)] flex flex-col bg-card rounded-lg border overflow-hidden"
+      className="flex-none w-[70vw] sm:basis-[calc((100%-16px)/2)] lg:basis-[calc((100%-32px)/3)] xl:basis-[calc((100%-48px)/4)] flex flex-col bg-card rounded-lg border overflow-hidden"
     >
       {/* Column Header */}
-      <div className="p-4 border-b bg-card sticky top-0 z-10">
+      <div className="p-3 sm:p-4 border-b bg-card sticky top-0 z-10">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">{title}</h3>
-          <Badge className={`${statusColors[status]} text-white shadow-sm`}>{tasks.length}</Badge>
+          <h3 className="font-semibold text-sm sm:text-base">{title}</h3>
+          <Badge className={`${statusColors[status]} text-white shadow-sm text-xs`}>{tasks.length}</Badge>
         </div>
       </div>
 
       {/* Tasks */}
       <div
         ref={setNodeRef}
-        className={`flex-1 p-3 space-y-3 min-h-[500px] bg-secondary transition ring-offset-1 ${
+        className={`flex-1 p-2 sm:p-3 space-y-2 sm:space-y-3 min-h-[300px] sm:min-h-[500px] bg-secondary transition ring-offset-1 ${
           isOver ? "ring-2 ring-primary/40" : "ring-0"
         }`}
       >
@@ -85,7 +85,7 @@ export const KanbanColumn = ({
               </div>
             ))
           ) : (
-            <div className="text-center text-xs text-muted-foreground py-8 border-2 border-dashed border-muted rounded-lg">
+            <div className="text-center text-xs text-muted-foreground py-6 sm:py-8 border-2 border-dashed border-muted rounded-lg">
               ამ სვეტში ამოცანები არ არის
             </div>
           )}

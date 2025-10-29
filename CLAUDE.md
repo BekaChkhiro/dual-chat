@@ -4,10 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DualChat is a team-client communication platform with dual-mode messaging and multi-organization support built on React, TypeScript, Vite, Supabase, and shadcn-ui. Key features include:
+DualChat is a team-client communication platform with dual-mode messaging, project management, and multi-organization support built on React, TypeScript, Vite, Supabase, and shadcn-ui. Key features include:
 - **Staff mode**: Team members toggle between client-visible messages and internal staff-only notes
 - **Multi-organization**: Users can create and switch between multiple organizations, each with isolated chats
+- **Project management**: Tasks with kanban board, calendar view, file attachments, and review workflow
+- **Documentation**: Per-chat notes (with pinning) and multi-page documentation
 - **Setup wizard**: New users complete a 3-step onboarding process (profile, organization, completion)
+- **Web push notifications**: Browser push notification support for real-time alerts
 
 ## Development Commands
 
@@ -49,10 +52,14 @@ Core tables (all with RLS enabled):
 - `user_roles` - Maps users to their roles (security critical, separate table)
 - `organizations` - Organizations that users can create and belong to
 - `organization_members` - Maps users to organizations with roles (owner, admin, member)
-- `chats` - Chat conversations with client/company metadata and organization_id
+- `chats` - Chat conversations with client/company metadata, organization_id, and project_description
 - `chat_members` - Many-to-many relationship between users and chats
 - `messages` - Chat messages with `is_staff_only` flag for dual-mode messaging
 - `chat_invitations` - Pending email invitations with tokens (7-day expiry)
+- `tasks` - Project tasks with status (to_start, in_progress, review, completed, failed), due dates, and attachments
+- `chat_notes` - Free-form project notes per chat with pinning capability
+- `chat_docs` - Multi-page documentation per chat with ordering
+- `web_push_subscriptions` - Browser push notification subscriptions per user
 
 **Key RLS Policies**:
 - Messages: `is_staff_only` messages only visible to admin/team_member roles
@@ -61,6 +68,10 @@ Core tables (all with RLS enabled):
 - Organizations: Users can only see organizations they're members of
 - Organization Members: Members can view other members in their organizations
 - Owners/admins can manage organization settings and members
+- Tasks: Only staff can create/update tasks; creators, assignees, and admins can update; visibility limited to chat members
+- Chat Notes: Only staff can create; authors and admins can update/delete; all chat members can view
+- Chat Docs: Only staff can create; authors and admins can update/delete; all chat members can view
+- Web Push: Users can only manage their own subscriptions
 
 ### Dual-Mode Messaging
 
@@ -70,6 +81,46 @@ The core feature implemented in `src/components/chat/ChatWindow.tsx`:
 - Staff mode shows **only** staff-only messages (internal notes)
 - Client mode shows **only** non-staff messages (visible to clients)
 - RLS ensures clients never receive staff-only messages from database
+
+### Staff Tabbed Interface
+
+Staff users see a tabbed interface (`StaffTabs` component) with multiple views:
+- **Messages** - Dual-mode chat messages (staff-only or client-visible)
+- **About Project** (`AboutProjectTab`) - Project description and documentation pages
+- **Tasks** (`TasksTab`) - List view of all tasks with filters
+- **Kanban** (`KanbanBoard`) - Drag-and-drop kanban board grouped by task status
+- **Calendar** (`CalendarView`) - Calendar view of tasks by due date
+- **Files** (`FilesTab`) - File attachments from messages and tasks
+
+The UI text is in Georgian language (საქართული).
+
+### Project Management Features
+
+**Tasks System:**
+- Tasks belong to chats and have: title, description, status, due_date, assignee_id, attachments
+- Status enum: `to_start`, `in_progress`, `review`, `completed`, `failed`
+- Task attachments stored in `task-attachments` bucket (private, 10MB limit per file)
+- Attachment metadata stored in JSONB column with same structure as message attachments
+- Only staff (admin/team_member) can create tasks
+- Task creators, assignees, and admins can update tasks
+- Assignees can update task status (for workflow progression)
+
+**Chat Notes:**
+- Free-form project notes attached to chats (max 2000 characters)
+- Can be pinned for important notes (boolean `pinned` flag)
+- Only staff can create; authors and admins can update/delete
+
+**Chat Documentation:**
+- Multi-page documentation system per chat
+- Each doc has: title (max 200 chars), content (max 20,000 chars), order_index
+- Ordered by `order_index` for custom sorting
+- Only staff can create; authors and admins can update/delete
+
+**Storage Buckets:**
+- `chat-attachments` - Message file attachments (private, 10MB limit)
+- `task-attachments` - Task file attachments (private, 10MB limit)
+- `avatars` - User profile avatars (private)
+- `organization-logos` - Organization logos (public)
 
 ### Real-time Updates
 
@@ -139,17 +190,25 @@ Invitations:
 ```
 src/
 ├── components/
-│   ├── chat/          - Chat components (ChatWindow, ChatList, CreateChatDialog, etc.)
-│   ├── organization/  - Organization components (OrganizationSwitcher, CreateOrganizationDialog)
-│   ├── setup/         - Setup wizard components (ProfileSetupForm, OrganizationSetupForm, AvatarUpload)
-│   └── ui/            - shadcn-ui components
-├── contexts/          - React contexts (AuthContext, OrganizationContext)
-├── hooks/             - Custom hooks
+│   ├── chat/
+│   │   ├── tabs/              - Tab views (MessagesTab, TasksTab, KanbanBoard, CalendarView, FilesTab, AboutProjectTab)
+│   │   ├── tasks/             - Task components (TaskCard, KanbanTaskCard, CreateTaskDialog, TaskDetailDialog)
+│   │   ├── chat-details/      - Chat details sidebar (MembersList, MediaGrid, FilesList, LinksList)
+│   │   ├── ChatWindow.tsx     - Main chat interface with tabbed views
+│   │   ├── ChatList.tsx       - List of chats in sidebar
+│   │   ├── StaffTabs.tsx      - Tabbed interface for staff mode
+│   │   ├── ModeToggle.tsx     - Toggle between staff/client mode
+│   │   └── ...                - Other chat components (MessageBubble, FileUpload, etc.)
+│   ├── organization/          - Organization components (OrganizationSwitcher, CreateOrganizationDialog)
+│   ├── setup/                 - Setup wizard components (ProfileSetupForm, OrganizationSetupForm, AvatarUpload)
+│   └── ui/                    - shadcn-ui components
+├── contexts/                  - React contexts (AuthContext, OrganizationContext)
+├── hooks/                     - Custom hooks
 ├── integrations/
-│   └── supabase/      - Supabase client and generated types
-├── lib/               - Utilities
-├── pages/             - Route pages (Index, Auth, Setup, NotFound)
-└── App.tsx            - Root component with routing and providers
+│   └── supabase/              - Supabase client and generated types
+├── lib/                       - Utilities
+├── pages/                     - Route pages (Index, Auth, Setup, NotFound)
+└── App.tsx                    - Root component with routing and providers
 ```
 
 ## Supabase Integration
@@ -180,6 +239,13 @@ Located in `supabase/migrations/`. Key migrations:
 - `20251015120000_*` - File attachments storage bucket and policies
 - `20251015170000_*` - Auto-assign admin role to first user, allow staff to add members
 - `20251015190000_*` - Organizations system: organizations, organization_members tables, profiles enhancements (phone, bio, setup_completed), avatars & organization-logos storage buckets
+- `20251015200000_*` - Tasks and project management (tasks table, task_status enum, project_description on chats)
+- `20251015210000_*` - Task attachments (attachments JSONB column, task-attachments bucket)
+- `20251016123001_*` - Add 'review' status to task_status enum
+- `20251016133002_*` - Chat notes table for free-form project notes
+- `20251016134005_*` - Add pinned flag to chat_notes
+- `20251016135210_*` - Chat docs table for multi-page documentation
+- `20251016170510_*` - Web push subscriptions table
 
 ### Edge Functions
 
@@ -244,6 +310,41 @@ const filteredMessages = messages?.filter((msg) =>
 
 RLS handles database-level security; client-side filtering is for UX only.
 
+### Working with Tasks
+
+Tasks are queried with chat_id and support various filtering:
+```typescript
+// Fetch tasks for a chat
+const { data: tasks } = await supabase
+  .from("tasks")
+  .select("*, assignee:assignee_id(full_name), creator:created_by(full_name)")
+  .eq("chat_id", chatId)
+  .order("created_at", { ascending: false });
+
+// Filter by status for kanban columns
+const tasksInProgress = tasks?.filter(t => t.status === 'in_progress');
+```
+
+Task status workflow: `to_start` → `in_progress` → `review` → `completed` (or `failed`)
+
+### Task and Message Attachments
+
+Both use JSONB columns with identical structure:
+```typescript
+interface Attachment {
+  name: string;   // Original filename
+  type: string;   // MIME type
+  url: string;    // Signed URL from Supabase Storage
+  size: number;   // File size in bytes
+}
+```
+
+Upload pattern (see `ChatWindow.tsx:214-256` and task upload components):
+1. Upload file to appropriate bucket with path: `{user_id}/{chat_id}/{timestamp}-{random}.{ext}`
+2. Generate signed URL (1-year expiration)
+3. Store attachment metadata in JSONB column
+4. Display with appropriate preview/download UI
+
 ## Testing Roles
 
 To test different roles, manually insert into `user_roles` table:
@@ -277,3 +378,8 @@ get_user_organization_role(_user_id, _organization_id) -- Returns role as text
 - Dashboard checks `setup_completed` and redirects to `/setup` if false
 - Organization logo upload uses public bucket, avatar upload uses private bucket
 - First user in setup wizard automatically becomes organization owner
+- **UI Language**: The interface uses Georgian language (საქართული) for staff-facing components (tab labels, buttons, etc.)
+- **Kanban Board**: Uses `@dnd-kit` library for drag-and-drop task management between status columns
+- **Calendar View**: Uses `react-big-calendar` for displaying tasks by due date
+- **Query Keys**: Include mode/status in query keys for proper cache invalidation (e.g., `["messages", chatId, isStaffMode ? 'staff' : 'client']`)
+- **Task Assignment**: Assignees can update task status even if they didn't create the task (enables workflow delegation)
