@@ -7,7 +7,7 @@ export const TestimonialsSection = () => {
       name: "გიორგი მელაძე",
       role: "CEO, Digital Agency",
       company: "CreativeLab",
-      quote: "DualChat-მა შეცვალა ჩვენი კლიენტებთან კომუნიკაციის სპეციფიკა. შიდა შენიშვნები არ ერევა კლიენტის მესიჯებში - ეს არის სიმარტივე და უსაფრთხოება.",
+      quote: "WorkChat-მა შეცვალა ჩვენი კლიენტებთან კომუნიკაციის სპეციფიკა. შიდა შენიშვნები არ ერევა კლიენტის მესიჯებში - ეს არის სიმარტივე და უსაფრთხოება.",
       rating: 5,
     },
     {
@@ -21,7 +21,7 @@ export const TestimonialsSection = () => {
       name: "დავით კვარაცხელია",
       role: "Team Lead",
       company: "TechSolutions",
-      quote: "Real-time შეტყობინებები და dual-mode რეჟიმი ძალიან კარგად ერწყმის ერთმანეთს. ჩვენი გუნდი უფრო პროდუქტიული გახდა DualChat-ით.",
+      quote: "Real-time შეტყობინებები და dual-mode რეჟიმი ძალიან კარგად ერწყმის ერთმანეთს. ჩვენი გუნდი უფრო პროდუქტიული გახდა WorkChat-ით.",
       rating: 5,
     },
   ];
@@ -38,7 +38,7 @@ export const TestimonialsSection = () => {
             <div className="h-1 w-12 bg-primary rounded-full" />
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            შეუერთდით 500+ გუნდს, რომლებიც უკვე იყენებენ DualChat-ს
+            შეუერთდით 500+ გუნდს, რომლებიც უკვე იყენებენ WorkChat-ს
           </p>
         </div>
 

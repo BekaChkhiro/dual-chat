@@ -100,7 +100,7 @@ const Index = () => {
               <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             </div>
             <div className="min-w-0">
-              <h1 className="font-bold text-base sm:text-xl">DualChat</h1>
+              <h1 className="font-bold text-base sm:text-xl">WorkChat</h1>
               <p className="text-xs text-muted-foreground hidden sm:block">
                 პროფესიონალური გუნდური კომუნიკაცია
               </p>
@@ -159,7 +159,7 @@ const Index = () => {
                 <MessageSquare className="w-16 h-16 text-primary" />
               </div>
               <div>
-                <h2 className="text-2xl font-semibold mb-2">მოგესალმებით DualChat-ში</h2>
+                <h2 className="text-2xl font-semibold mb-2">მოგესალმებით WorkChat-ში</h2>
                 <p className="text-muted-foreground max-w-md">
                   აირჩიეთ ჩატი გვერდითი პანელიდან, რომ დაიწყოთ კომუნიკაცია თქვენს კლიენტებთან,
                   ან შექმენით ახალი ჩატი დასაწყებად.

@@ -40,7 +40,7 @@ export const LandingFooter = () => {
               <div className="p-1.5 bg-primary/10 rounded-lg">
                 <MessageSquare className="w-5 h-5 text-primary" />
               </div>
-              <span className="font-bold text-xl">DualChat</span>
+              <span className="font-bold text-xl">WorkChat</span>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
               პროფესიონალური გუნდური კომუნიკაცია კლიენტებთან.
@@ -82,7 +82,7 @@ export const LandingFooter = () => {
 
         {/* Bottom bar */}
         <div className="border-t pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-          <p>© {currentYear} DualChat. ყველა უფლება დაცულია.</p>
+          <p>© {currentYear} WorkChat. ყველა უფლება დაცულია.</p>
           <p>Made with ❤️ in Georgia</p>
         </div>
       </div>

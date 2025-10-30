@@ -48,7 +48,7 @@ function initVapid() {
     throw new Error("Missing VAPID_PUBLIC_KEY or VAPID_PRIVATE_KEY");
   }
 
-  webpush.setVapidDetails("mailto:admin@dualchat.app", pub, priv);
+  webpush.setVapidDetails("mailto:admin@workchat.app", pub, priv);
 }
 
 async function deleteSubscriptionByEndpoint(supabase: any, endpoint: string) {
@@ -130,7 +130,7 @@ serve(async (req: Request) => {
     }
 
     // Prepare notification payload
-    const chatTitle = chat.client_name || chat.company_name || "DualChat";
+    const chatTitle = chat.client_name || chat.company_name || "WorkChat";
     const messagePreview = message_text
       ? (message_text.length > 100 ? message_text.substring(0, 100) + "..." : message_text)
       : "New message";

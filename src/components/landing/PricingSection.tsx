@@ -25,7 +25,7 @@ export const PricingSection = () => {
             მზად ხართ დაწყებისთვის?
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            დაიწყეთ უფასოდ და გამოსცადეთ DualChat-ის ყველა შესაძლებლობა
+            დაიწყეთ უფასოდ და გამოსცადეთ WorkChat-ის ყველა შესაძლებლობა
           </p>
         </div>
 

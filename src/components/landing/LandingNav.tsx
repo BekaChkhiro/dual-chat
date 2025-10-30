@@ -33,7 +33,7 @@ export const LandingNav = ({ onNavigate }: LandingNavProps) => {
             <div className="p-1.5 bg-primary/10 rounded-lg">
               <MessageSquare className="w-5 h-5 text-primary" />
             </div>
-            <span className="font-bold text-xl">DualChat</span>
+            <span className="font-bold text-xl">WorkChat</span>
           </div>
 
           {/* Desktop Navigation */}

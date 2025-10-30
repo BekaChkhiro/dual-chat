@@ -47,7 +47,7 @@ function initVapid() {
   const pub = Deno.env.get("VAPID_PUBLIC_KEY");
   const priv = Deno.env.get("VAPID_PRIVATE_KEY");
   if (!pub || !priv) throw new Error("Missing VAPID keys");
-  webpush.setVapidDetails("mailto:admin@dualchat.app", pub, priv);
+  webpush.setVapidDetails("mailto:admin@workchat.app", pub, priv);
 }
 
 serve(async (req: Request) => {
@@ -59,7 +59,7 @@ serve(async (req: Request) => {
     if (!payload) throw new Error("Missing payload");
 
     const finalPayload = {
-      title: payload.title ?? "DualChat",
+      title: payload.title ?? "WorkChat",
       body: payload.body ?? "New notification",
       data: { url: payload.url ?? "/", ...(payload.data ?? {}) },
     };

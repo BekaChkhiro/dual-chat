@@ -40,7 +40,7 @@ const handler = async (req: Request): Promise<Response> => {
     const roleText = role === "team_member" ? "Team Member" : "Client";
 
     const emailResponse = await resend.emails.send({
-      from: "DualChat <onboarding@resend.dev>",
+      from: "WorkChat <onboarding@resend.dev>",
       to: [email],
       subject: `You've been invited to join ${chatName}`,
       html: `

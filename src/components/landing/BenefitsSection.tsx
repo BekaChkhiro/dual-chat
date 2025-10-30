@@ -23,7 +23,7 @@ export const BenefitsSection = () => {
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="h-1 w-12 bg-staff rounded-full" />
             <h2 className="text-3xl sm:text-4xl font-bold">
-              რატომ DualChat?
+              რატომ WorkChat?
             </h2>
             <div className="h-1 w-12 bg-staff rounded-full" />
           </div>
@@ -60,7 +60,7 @@ export const BenefitsSection = () => {
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Check className="w-5 h-5 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold">DualChat-ით</h3>
+                <h3 className="text-xl font-semibold">WorkChat-ით</h3>
               </div>
               <ul className="space-y-4">
                 {solutions.map((solution, index) => (

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dualchat-cache-v1';
+const CACHE_NAME = 'workchat-cache-v1';
 const ASSETS = [
   '/',
   '/index.html',
@@ -77,13 +77,13 @@ self.addEventListener('fetch', (event) => {
 
 // Handle Web Push messages and notification clicks
 self.addEventListener('push', (event) => {
-  let payload = { title: 'DualChat', body: 'New notification', icon: '/icon-192.png', badge: '/badge-72.png', tag: 'default', data: {} };
+  let payload = { title: 'WorkChat', body: 'New notification', icon: '/icon-192.png', badge: '/badge-72.png', tag: 'default', data: {} };
   try {
     if (event.data) payload = JSON.parse(event.data.text());
   } catch {}
   const { title, body, icon, badge, tag, data } = payload;
   event.waitUntil(
-    self.registration.showNotification(title || 'DualChat', {
+    self.registration.showNotification(title || 'WorkChat', {
       body: body || '',
       icon: icon || '/icon-192.png',
       badge: badge || '/badge-72.png',

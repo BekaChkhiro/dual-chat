@@ -41,7 +41,7 @@ export const FeatureGrid = () => {
             <div className="h-1 w-12 bg-primary rounded-full" />
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            DualChat აერთიანებს კომუნიკაციას, პროექტების მართვასა და თანამშრომლობის ინსტრუმენტებს
+            WorkChat აერთიანებს კომუნიკაციას, პროექტების მართვასა და თანამშრომლობის ინსტრუმენტებს
             ერთ პლატფორმაზე.
           </p>
         </div>

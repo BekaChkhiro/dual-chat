@@ -26,7 +26,7 @@ export const HeroSection = () => {
                 <span className="text-primary">შიდა კომუნიკაცია</span>
               </h1>
               <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl leading-relaxed">
-                DualChat-ის Dual-Mode რეჟიმით მართეთ კლიენტებთან კომუნიკაცია და გუნდის შიდა ნოტები ერთ პლატფორმაზე.
+                WorkChat-ის Dual-Mode რეჟიმით მართეთ კლიენტებთან კომუნიკაცია და გუნდის შიდა ნოტები ერთ პლატფორმაზე.
                 გადართეთ კლიენტისთვის ხილვად მესიჯებსა და staff-only შენიშვნებს შორის.
               </p>
             </div>
