@@ -166,13 +166,23 @@ The app supports browser push notifications for real-time message alerts:
 ### Member Management & Invitations
 
 `AddMemberDialog` component handles two scenarios:
-1. **Existing users**: Directly adds to `chat_members` and assigns role if needed
+1. **Existing users**: Directly adds to `chat_members`, automatically adds to organization, and assigns role if needed
 2. **Non-existent users**: Creates invitation in `chat_invitations` table and calls `send-chat-invitation` Edge Function
+
+**Automatic Organization Membership:**
+- When a user is added to a chat (either as existing user or via invitation), they are automatically added to the chat's parent organization
+- Uses `add_user_to_chat_organization(_user_id, _chat_id)` database function (SECURITY DEFINER)
+- New members are assigned the `member` role in the organization by default
+- Function is idempotent - safe to call multiple times
+- Implemented in:
+  - `AddMemberDialog.tsx` (line ~187) - when adding existing users to chat
+  - `Auth.tsx` (line ~133) - when new users accept invitation during signup
+- Backfill migration `20251030130000` ensures existing chat members are added to their organizations
 
 Invitations:
 - Generate unique token and 7-day expiration
 - Edge Function sends email with invitation URL: `${origin}/auth?invitation=${token}`
-- Auth page should handle invitation token to complete signup flow
+- Auth page handles invitation token to complete signup flow and add user to both chat and organization
 
 ### State Management
 
@@ -277,6 +287,8 @@ Located in `supabase/migrations/`. Key migrations:
 - `20251016134005_*` - Add pinned flag to chat_notes
 - `20251016135210_*` - Chat docs table for multi-page documentation
 - `20251016170510_*` - Web push subscriptions table
+- `20251030120000_*` - Auto-add chat members to organization (add_user_to_chat_organization function)
+- `20251030130000_*` - Backfill existing chat members into organizations
 
 ### Edge Functions
 

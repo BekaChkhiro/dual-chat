@@ -130,6 +130,26 @@ const Auth = () => {
                 user_id: authData.user.id,
               });
 
+              // Add user to chat's organization automatically
+              try {
+                const { data: orgResult, error: orgError } = await supabase.rpc(
+                  'add_user_to_chat_organization',
+                  {
+                    _user_id: authData.user.id,
+                    _chat_id: invitation.chat_id
+                  }
+                );
+
+                if (orgError) {
+                  console.error('[Auth] Error adding to organization:', orgError);
+                } else {
+                  console.log('[Auth] Organization membership result:', orgResult);
+                }
+              } catch (orgError) {
+                console.error('[Auth] Exception adding to organization:', orgError);
+                // Don't fail - user is already added to chat
+              }
+
               // Assign role
               await supabase.from("user_roles").insert({
                 user_id: authData.user.id,

@@ -184,6 +184,26 @@ export const AddMemberDialog = ({
               continue;
             }
 
+            // Add user to chat's organization automatically
+            try {
+              const { data: orgResult, error: orgError } = await supabase.rpc(
+                'add_user_to_chat_organization',
+                {
+                  _user_id: profile.id,
+                  _chat_id: chatId
+                }
+              );
+
+              if (orgError) {
+                console.error('[AddMembers] Error adding to organization:', orgError);
+              } else {
+                console.log('[AddMembers] Organization membership result:', orgResult);
+              }
+            } catch (orgError) {
+              console.error('[AddMembers] Exception adding to organization:', orgError);
+              // Don't fail the whole operation - user is already added to chat
+            }
+
             // Assign role: delete all existing roles and add new one
             console.log('[AddMembers] Assigning role:', validated.role, 'to user:', profile.id);
 
