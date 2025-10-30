@@ -62,8 +62,7 @@ export const ChatList = ({ selectedChatId, onSelectChat, onCreateChat }: ChatLis
         .from("chats")
         .select("*")
         .eq("organization_id", currentOrganization.id)
-        .in("id", chatIds)
-        .order("updated_at", { ascending: false });
+        .in("id", chatIds);
 
       if (chatsError) throw chatsError;
 
@@ -100,7 +99,28 @@ export const ChatList = ({ selectedChatId, onSelectChat, onCreateChat }: ChatLis
         })
       );
 
-      return chatsWithMessages as Chat[];
+      // Sort chats by last message time (most recent first)
+      // Chats without messages go to the bottom, sorted by creation date
+      const sortedChats = chatsWithMessages.sort((a, b) => {
+        const aTime = a.last_message?.created_at;
+        const bTime = b.last_message?.created_at;
+
+        // Both have messages - sort by message time
+        if (aTime && bTime) {
+          return new Date(bTime).getTime() - new Date(aTime).getTime();
+        }
+
+        // Only a has message - a comes first
+        if (aTime && !bTime) return -1;
+
+        // Only b has message - b comes first
+        if (!aTime && bTime) return 1;
+
+        // Neither has messages - sort by chat creation date
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+
+      return sortedChats as Chat[];
     },
   });
 

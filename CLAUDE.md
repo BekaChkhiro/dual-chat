@@ -420,6 +420,9 @@ get_user_organization_role(_user_id, _organization_id) -- Returns role as text
   - First fetches user's `chat_members` entries to get chat IDs
   - Then filters chats by both `organization_id` and `chat_id IN (...)`
   - This ensures users only see chats they're explicitly added to, not all organization chats
+  - **Sorting**: Chats are sorted client-side by last message timestamp (most recent first)
+    - Chats with messages sorted by `last_message.created_at` (descending)
+    - Chats without messages appear at bottom, sorted by `created_at` (descending)
 - ChatList query includes `organization_id` in queryKey: `["chats", currentOrganization?.id]`
 - Setup wizard sets `setup_completed = true` in profiles table
 - Dashboard checks `setup_completed` and redirects to `/setup` if false
