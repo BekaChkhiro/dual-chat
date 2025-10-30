@@ -18,10 +18,10 @@ export const PricingSection = () => {
   ];
 
   return (
-    <section id="pricing" className="py-24 sm:py-32 bg-muted/30">
+    <section id="pricing" className="py-20 sm:py-24 lg:py-32">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center space-y-4 mb-16">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold">
+        <div className="text-center space-y-3 mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold">
             მზად ხართ დაწყებისთვის?
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -29,28 +29,27 @@ export const PricingSection = () => {
           </p>
         </div>
 
-        <Card className="max-w-3xl mx-auto border-primary/20 shadow-xl">
-          <CardContent className="pt-8">
-            <div className="text-center space-y-6 mb-8">
+        <Card className="max-w-3xl mx-auto">
+          <CardContent className="p-8 sm:p-12">
+            <div className="text-center space-y-4 mb-8">
               <div>
-                <h3 className="text-3xl font-bold mb-2">უფასო გამოცდა</h3>
+                <h3 className="text-2xl font-bold mb-2">უფასო გამოცდა</h3>
                 <p className="text-muted-foreground">
                   დაიწყეთ დღესვე, საკრედიტო ბარათის გარეშე
                 </p>
               </div>
 
               <div className="flex items-baseline justify-center gap-2">
-                <span className="text-5xl font-bold">უფასოდ</span>
+                <span className="text-4xl font-bold">უფასოდ</span>
                 <span className="text-muted-foreground">/რეგისტრაცია</span>
               </div>
             </div>
 
-            {/* CTA - Moved above features */}
-            <div className="flex flex-col items-center gap-4 mb-8">
+            <div className="flex flex-col items-center gap-3 mb-8">
               <Button
                 size="lg"
                 onClick={() => navigate("/auth")}
-                className="w-full sm:w-auto group hover:scale-105 hover:shadow-lg transition-all"
+                className="w-full sm:w-auto group"
               >
                 დაიწყეთ უფასოდ
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -60,12 +59,11 @@ export const PricingSection = () => {
               </p>
             </div>
 
-            {/* Features list - Moved below CTA */}
-            <div className="border-t pt-6">
-              <p className="text-center text-sm font-medium mb-4">ყველა შესაძლებლობა შედის:</p>
-              <div className="grid sm:grid-cols-2 gap-4">
+            <div className="border-t pt-8">
+              <p className="text-center text-sm font-medium text-muted-foreground mb-6">ყველა შესაძლებლობა შედის:</p>
+              <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3">
                 {features.map((feature, index) => (
-                  <div key={index} className="flex items-start gap-3">
+                  <div key={index} className="flex items-start gap-2">
                     <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <span className="text-sm">{feature}</span>
                   </div>
