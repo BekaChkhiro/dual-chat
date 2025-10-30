@@ -38,11 +38,31 @@ export const ChatList = ({ selectedChatId, onSelectChat, onCreateChat }: ChatLis
     queryFn: async () => {
       if (!currentOrganization) return [];
 
-      // Fetch chats for the current organization
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      // First, get chat IDs where the user is a member
+      const { data: userChatMemberships, error: membershipError } = await supabase
+        .from("chat_members")
+        .select("chat_id")
+        .eq("user_id", user.id);
+
+      if (membershipError) throw membershipError;
+
+      // If user is not a member of any chats, return empty array
+      if (!userChatMemberships || userChatMemberships.length === 0) {
+        return [];
+      }
+
+      const chatIds = userChatMemberships.map(m => m.chat_id);
+
+      // Fetch chats for the current organization that the user is a member of
       const { data: chatsData, error: chatsError } = await supabase
         .from("chats")
         .select("*")
         .eq("organization_id", currentOrganization.id)
+        .in("id", chatIds)
         .order("updated_at", { ascending: false });
 
       if (chatsError) throw chatsError;

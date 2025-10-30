@@ -416,6 +416,10 @@ get_user_organization_role(_user_id, _organization_id) -- Returns role as text
 ## Important Implementation Notes
 
 - Always check `currentOrganization` before creating chats or fetching chat lists
+- ChatList query explicitly filters by `chat_members` to show only chats where the user is a member
+  - First fetches user's `chat_members` entries to get chat IDs
+  - Then filters chats by both `organization_id` and `chat_id IN (...)`
+  - This ensures users only see chats they're explicitly added to, not all organization chats
 - ChatList query includes `organization_id` in queryKey: `["chats", currentOrganization?.id]`
 - Setup wizard sets `setup_completed = true` in profiles table
 - Dashboard checks `setup_completed` and redirects to `/setup` if false
