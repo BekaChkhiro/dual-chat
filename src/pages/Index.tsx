@@ -6,6 +6,7 @@ import { ChatList } from "@/components/chat/ChatList";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { CreateChatDialog } from "@/components/chat/CreateChatDialog";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
+import { NotificationPermissionBanner } from "@/components/notifications/NotificationPermissionBanner";
 import { Button } from "@/components/ui/button";
 import { LogOut, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,6 +74,9 @@ const Index = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background">
+      {/* Notification Permission Banner */}
+      <NotificationPermissionBanner />
+
       {/* Top Header */}
       <header className="border-b bg-card px-3 sm:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">

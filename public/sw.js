@@ -77,17 +77,20 @@ self.addEventListener('fetch', (event) => {
 
 // Handle Web Push messages and notification clicks
 self.addEventListener('push', (event) => {
-  let payload = { title: 'DualChat', body: 'New notification', data: {} };
+  let payload = { title: 'DualChat', body: 'New notification', icon: '/icon-192.png', badge: '/badge-72.png', tag: 'default', data: {} };
   try {
     if (event.data) payload = JSON.parse(event.data.text());
   } catch {}
-  const { title, body, data } = payload;
+  const { title, body, icon, badge, tag, data } = payload;
   event.waitUntil(
     self.registration.showNotification(title || 'DualChat', {
       body: body || '',
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
+      icon: icon || '/icon-192.png',
+      badge: badge || '/badge-72.png',
+      tag: tag || 'default',
       data: data || {},
+      requireInteraction: false,
+      vibrate: [200, 100, 200],
     })
   );
 });

@@ -165,15 +165,42 @@ export const MessagesTab = ({ chatId, messages, isStaffMode }: MessagesTabProps)
       }
 
       // Insert message with attachments
-      const { error } = await supabase.from("messages").insert({
-        chat_id: chatId,
-        sender_id: user!.id,
-        content: content || '',
-        is_staff_only: isStaffMode,
-        attachments: uploadedAttachments,
-      });
+      const { data: messageData, error } = await supabase
+        .from("messages")
+        .insert({
+          chat_id: chatId,
+          sender_id: user!.id,
+          content: content || '',
+          is_staff_only: isStaffMode,
+          attachments: uploadedAttachments,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Send push notifications to chat members (async, don't wait for it)
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          supabase.functions.invoke('notify-new-message', {
+            body: {
+              message_id: messageData.id,
+              chat_id: chatId,
+              sender_id: user!.id,
+              message_text: content,
+              is_staff_only: isStaffMode,
+            },
+          }).catch((err) => {
+            // Log error but don't fail the message send
+            console.warn('Failed to send push notifications:', err);
+          });
+        }
+      } catch (err) {
+        console.warn('Failed to trigger push notifications:', err);
+      }
+
+      return messageData;
     },
     onSuccess: () => {
       setMessage("");

@@ -56,7 +56,7 @@ export const ChatList = ({ selectedChatId, onSelectChat, onCreateChat }: ChatLis
               content,
               created_at,
               attachments,
-              profiles:sender_id (
+              sender:sender_id (
                 full_name,
                 email
               )
@@ -64,14 +64,14 @@ export const ChatList = ({ selectedChatId, onSelectChat, onCreateChat }: ChatLis
             .eq("chat_id", chat.id)
             .order("created_at", { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
           return {
             ...chat,
             last_message: lastMessage
               ? {
                   content: lastMessage.content,
-                  sender_name: lastMessage.profiles?.full_name || lastMessage.profiles?.email || "Unknown",
+                  sender_name: lastMessage.sender?.full_name || lastMessage.sender?.email || "Unknown",
                   created_at: lastMessage.created_at,
                   attachments: lastMessage.attachments,
                 }

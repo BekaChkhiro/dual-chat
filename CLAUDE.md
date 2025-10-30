@@ -10,7 +10,7 @@ DualChat is a team-client communication platform with dual-mode messaging, proje
 - **Project management**: Tasks with kanban board, calendar view, file attachments, and review workflow
 - **Documentation**: Per-chat notes (with pinning) and multi-page documentation
 - **Setup wizard**: New users complete a 3-step onboarding process (profile, organization, completion)
-- **Web push notifications**: Browser push notification support for real-time alerts
+- **Web push notifications**: Browser push notification support for real-time message alerts (see PUSH-NOTIFICATIONS-SETUP.md)
 
 ## Development Commands
 
@@ -131,6 +131,37 @@ ALTER PUBLICATION supabase_realtime ADD TABLE messages;
 ```
 
 Components subscribe to Supabase realtime channels and invalidate React Query cache on INSERT events.
+
+### Web Push Notifications
+
+The app supports browser push notifications for real-time message alerts:
+
+**Architecture:**
+- `src/lib/push.ts` - Client-side subscription management
+- `public/sw.js` - Service worker handling push events and notification clicks
+- `src/components/notifications/NotificationPermissionBanner.tsx` - UI for requesting permission
+- `supabase/functions/notify-new-message/` - Edge Function to send notifications
+- `web_push_subscriptions` table - Stores active push subscriptions per user
+- `get_chat_member_subscriptions()` - Database function to query subscriptions
+
+**Flow:**
+1. User enables notifications via banner (calls `enablePushForCurrentUser()`)
+2. Browser creates push subscription with VAPID public key
+3. Subscription stored in `web_push_subscriptions` table
+4. When message sent, client invokes `notify-new-message` Edge Function
+5. Edge Function queries chat members' subscriptions (excluding sender)
+6. Notifications sent to all chat members via web-push library
+7. Service worker receives push event and displays notification
+8. User clicks notification → app opens to specific chat
+
+**Key Features:**
+- Automatic cleanup of expired subscriptions (410/404 responses)
+- Staff-only messages only notify staff members
+- Notifications include chat context and message preview
+- Deep linking to specific chat on notification click
+- iOS PWA support (iOS 16.4+, requires Add to Home Screen)
+
+**Setup:** See `PUSH-NOTIFICATIONS-SETUP.md` for complete configuration guide including VAPID key generation, environment variables, and deployment steps.
 
 ### Member Management & Invitations
 
