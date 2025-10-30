@@ -54,6 +54,21 @@ const Index = () => {
     }
   }, [user, loading, navigate]);
 
+  // Handle deep linking from push notifications
+  useEffect(() => {
+    // Check URL for chat parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const chatId = urlParams.get('chat');
+
+    if (chatId && user && setupCompleted) {
+      // Set the selected chat
+      setSelectedChatId(chatId);
+
+      // Clean up URL (remove query parameter)
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [user, setupCompleted]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast.success("წარმატებით გახვედით სისტემიდან");

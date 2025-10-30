@@ -42,12 +42,21 @@ export const MessagesTab = ({ chatId, messages, isStaffMode }: MessagesTabProps)
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const listChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // Auto scroll to bottom
+  // Auto scroll to bottom when chat changes (instant) or new message arrives (smooth)
+  const prevChatIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+      // If chat ID changed, scroll instantly to bottom
+      if (prevChatIdRef.current !== chatId) {
+        scrollRef.current.scrollIntoView({ behavior: "auto", block: "end" });
+        prevChatIdRef.current = chatId;
+      } else {
+        // If new message in same chat, scroll smoothly
+        scrollRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
     }
-  }, [messages]);
+  }, [messages, chatId]);
 
   // Setup broadcast channels (chat-specific and list-wide)
   useEffect(() => {
