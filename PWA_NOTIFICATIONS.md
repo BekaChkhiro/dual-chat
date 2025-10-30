@@ -64,7 +64,7 @@ curl -X POST \
   https://<your-project-url>/functions/v1/send-web-push \
   -d '{
     "user_id": "<target-user-id>",
-    "payload": { "title": "DualChat", "body": "Test from PWA", "url": "/" }
+    "payload": { "title": "WorkChat", "body": "Test from PWA", "url": "/" }
   }'
 ```
 

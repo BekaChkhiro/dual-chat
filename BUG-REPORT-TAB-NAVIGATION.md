@@ -30,7 +30,7 @@ When staff users switch to the Kanban (კანბანი) or Calendar (კ�
 
 ## Environment
 
-- **Application**: DualChat Team Communication Platform
+- **Application**: WorkChat Team Communication Platform
 - **Affected Views**: Kanban Board, Calendar View
 - **Unaffected Views**: Messages, About Project, Tasks, Files
 - **Browser**: All browsers (issue is CSS/layout-related)

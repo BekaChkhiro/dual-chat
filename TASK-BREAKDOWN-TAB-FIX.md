@@ -1,6 +1,6 @@
 # Task Breakdown: Fix Tab Navigation Disappearance
 
-**Project**: DualChat Communication Platform
+**Project**: WorkChat Communication Platform
 **Feature**: Staff Tabbed Interface Navigation
 **Issue**: Tabs disappear on Kanban and Calendar views
 **Priority**: Critical

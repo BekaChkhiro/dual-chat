@@ -1,5 +1,5 @@
 # Push Notifications - Quick Start Guide
-## DualChat PWA - სწრაფი დაწყება
+## WorkChat PWA - სწრაფი დაწყება
 
 ---
 
@@ -420,7 +420,7 @@ curl -X POST \
   -d '{
     "user_id": "<your-user-id>",
     "payload": {
-      "title": "DualChat ტესტი",
+      "title": "WorkChat ტესტი",
       "body": "ეს არის სატესტო შეტყობინება",
       "url": "/",
       "data": {}
@@ -475,7 +475,7 @@ curl -X POST \
 
 **Problem**: Notification არ მოდის
 - **Fix**:
-  1. Settings → Notifications → DualChat → Allow Notifications ✓
+  1. Settings → Notifications → WorkChat → Allow Notifications ✓
   2. დარწმუნდი რომ Focus Mode არ არის ჩართული
 
 **Problem**: "Add to Home Screen" არ ჩანს

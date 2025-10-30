@@ -2,7 +2,7 @@
 
 ## Implementation Complete ✅
 
-All push notification features have been successfully implemented for the DualChat application.
+All push notification features have been successfully implemented for the WorkChat application.
 
 ## What Was Implemented
 

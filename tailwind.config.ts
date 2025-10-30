@@ -57,8 +57,8 @@ export default {
         },
         chat: {
           bg: "hsl(var(--chat-bg))",
-          sent: "hsl(var(--message-sent))",
-          received: "hsl(var(--message-received))",
+          sent: "hsl(var(--chat-sent))",
+          received: "hsl(var(--chat-received))",
         },
         sidebar: {
           bg: "hsl(var(--sidebar-bg))",

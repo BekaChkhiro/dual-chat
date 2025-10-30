@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DualChat is a team-client communication platform with dual-mode messaging, project management, and multi-organization support built on React, TypeScript, Vite, Supabase, and shadcn-ui. Key features include:
+WorkChat is a team-client communication platform with dual-mode messaging, project management, and multi-organization support built on React, TypeScript, Vite, Supabase, and shadcn-ui. Key features include:
 - **Staff mode**: Team members toggle between client-visible messages and internal staff-only notes
 - **Multi-organization**: Users can create and switch between multiple organizations, each with isolated chats
 - **Project management**: Tasks with kanban board, calendar view, file attachments, and review workflow

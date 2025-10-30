@@ -1,6 +1,6 @@
 # Push Notifications Setup Guide
 
-This guide walks you through setting up Web Push Notifications for DualChat.
+This guide walks you through setting up Web Push Notifications for WorkChat.
 
 ## Overview
 
@@ -179,7 +179,7 @@ Check the following if notifications aren't working:
 For iOS devices:
 
 1. **Install as PWA**
-   - Open DualChat in Safari
+   - Open WorkChat in Safari
    - Tap Share button
    - Select "Add to Home Screen"
    - Open from Home Screen icon

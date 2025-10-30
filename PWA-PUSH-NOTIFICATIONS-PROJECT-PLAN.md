@@ -1,11 +1,11 @@
 # Push Notifications Implementation - Project Plan
-## DualChat PWA Push Notifications
+## WorkChat PWA Push Notifications
 
 ---
 
 ## Executive Summary
 
-**Objective**: Implement complete push notification system for DualChat PWA that alerts users when new messages arrive in their chats.
+**Objective**: Implement complete push notification system for WorkChat PWA that alerts users when new messages arrive in their chats.
 
 **Current Status**:
 - ✅ Database schema exists (`web_push_subscriptions` table)
@@ -53,7 +53,7 @@
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
 │     Service Worker (sw.js) shows notification                │
-│    User clicks → opens chat in DualChat PWA                  │
+│    User clicks → opens chat in WorkChat PWA                  │
 └─────────────────────────────────────────────────────────────┘
 ```
 

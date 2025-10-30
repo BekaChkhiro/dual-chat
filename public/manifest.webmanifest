@@ -1,6 +1,6 @@
 {
-  "name": "DualChat",
-  "short_name": "DualChat",
+  "name": "WorkChat",
+  "short_name": "WorkChat",
   "description": "Professional team communication platform",
   "start_url": "/",
   "scope": "/",

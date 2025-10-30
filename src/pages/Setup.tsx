@@ -128,7 +128,7 @@ const Setup = () => {
 
       // Redirect to dashboard after 2 seconds
       setTimeout(() => {
-        navigate("/");
+        navigate("/app");
       }, 2000);
     } catch (error) {
       console.error("Setup error:", error);

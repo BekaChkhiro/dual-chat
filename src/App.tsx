@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { OrganizationProvider } from "./contexts/OrganizationContext";
 import Index from "./pages/Index";
+import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Setup from "./pages/Setup";
 import NotFound from "./pages/NotFound";
@@ -21,7 +22,8 @@ const App = () => (
         <AuthProvider>
           <OrganizationProvider>
             <Routes>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/app" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/setup" element={<Setup />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

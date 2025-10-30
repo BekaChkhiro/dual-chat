@@ -89,7 +89,7 @@ const Auth = () => {
         return;
       }
 
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/app`;
 
       const { data: authData, error } = await supabase.auth.signUp({
         email: validated.email,
@@ -224,7 +224,7 @@ const Auth = () => {
           navigate("/setup");
         } else {
           toast.success("კეთილი იყოს თქვენი დაბრუნება!");
-          navigate("/");
+          navigate("/app");
         }
       }
     } catch (error) {
@@ -247,7 +247,7 @@ const Auth = () => {
               <MessageSquare className="w-8 h-8 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">DualChat</CardTitle>
+          <CardTitle className="text-2xl font-bold">WorkChat</CardTitle>
           <CardDescription>
             პროფესიონალური კომუნიკაციის პლატფორმა მარკეტინგის გუნდებისთვის
           </CardDescription>
